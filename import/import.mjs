@@ -34,34 +34,18 @@
 // =====================================================================
 
 import { readFileSync } from 'node:fs';
-
-const API = process.env.SUPABASE_URL;
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// All database access goes through the one seam, so moving off Supabase
+// changes lib/db.mjs and nothing in here.
+import { queryAll, upsert, assertConfigured } from '../lib/db.mjs';
 
 const args = process.argv.slice(2);
 const FILE = args.find((a) => !a.startsWith('--'));
 const APPLY = args.includes('--apply');
 
-if (!FILE) die('usage: node import/import.mjs <file.jsonl> [--apply]');
-if (!API || !KEY) die('set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-
 function die(msg) { console.error(`\n  ${msg}\n`); process.exit(1); }
 
-async function rest(path, { method = 'GET', body, prefer } = {}) {
-  const res = await fetch(`${API}/rest/v1/${path}`, {
-    method,
-    headers: {
-      apikey: KEY,
-      Authorization: `Bearer ${KEY}`,
-      'Content-Type': 'application/json',
-      ...(prefer ? { Prefer: prefer } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`${method} ${path} -> ${res.status} ${text}`);
-  return text ? JSON.parse(text) : null;
-}
+if (!FILE) die('usage: node import/import.mjs <file.jsonl> [--apply]');
+try { assertConfigured(); } catch (e) { die(e.message); }
 
 const slugify = (s) =>
   String(s).toLowerCase().trim()
@@ -133,10 +117,16 @@ async function main() {
   // Reference data. The importer resolves against what exists and
   // rejects anything it cannot match; it never creates a brand or a
   // category as a side effect of importing a product.
+  // queryAll pages until exhausted. A plain fetch would be silently
+  // capped by PostgREST, so a catalogue past the cap would import as
+  // "all creates" and duplicate everything already in the database.
   const [brands, categories, existing] = await Promise.all([
-    rest('brands?select=id,slug,name'),
-    rest('categories?select=id,slug,name,path'),
-    rest('products?select=sku,name,summary,description,status,specs,brand_id,primary_category_id'),
+    queryAll('brands', { select: 'id,slug,name', order: 'sort.asc' }),
+    queryAll('categories', { select: 'id,slug,name,path', order: 'path.asc' }),
+    queryAll('products', {
+      select: 'sku,name,summary,description,status,specs,brand_id,primary_category_id',
+      order: 'sku.asc',
+    }),
   ]);
 
   const brandBy = new Map();
@@ -251,11 +241,7 @@ async function main() {
   let done = 0;
   for (let i = 0; i < all.length; i += CHUNK) {
     const batch = all.slice(i, i + CHUNK);
-    await rest('products?on_conflict=sku', {
-      method: 'POST',
-      body: batch,
-      prefer: 'resolution=merge-duplicates,return=minimal',
-    });
+    await upsert('products', batch, { onConflict: 'sku' });
     done += batch.length;
     console.log(`  written ${done}/${all.length}`);
   }
