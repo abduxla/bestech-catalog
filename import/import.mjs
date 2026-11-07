@@ -124,7 +124,7 @@ async function main() {
     queryAll('brands', { select: 'id,slug,name', order: 'sort.asc' }),
     queryAll('categories', { select: 'id,slug,name,path', order: 'path.asc' }),
     queryAll('products', {
-      select: 'sku,name,summary,description,status,specs,brand_id,primary_category_id',
+      select: 'sku,slug,name,summary,description,status,specs,brand_id,primary_category_id',
       order: 'sku.asc',
     }),
   ]);
@@ -135,7 +135,7 @@ async function main() {
   const catByLeaf = new Map(categories.map((c) => [c.slug, c]));
   const existingBy = new Map(existing.map((p) => [p.sku, p]));
 
-  const creates = [], updates = [], rejects = [];
+  const creates = [], updates = [], rejects = [], slugChanges = [];
   const seenSku = new Map();
 
   lines.forEach((line, i) => {
@@ -168,7 +168,6 @@ async function main() {
 
     const record = {
       sku,
-      slug: slugify(row.slug || `${row.name}-${sku}`),
       name: String(row.name).trim(),
       brand_id,
       primary_category_id,
@@ -179,7 +178,30 @@ async function main() {
       // live site. Publishing stays a deliberate action.
       status: row.status || 'draft',
     };
-    (existingBy.has(sku) ? updates : creates).push(record);
+
+    // A product's URL is frozen the moment it is created.
+    //
+    // The slug is deliberately NOT part of an update. Spreadsheets do
+    // not carry a slug column, so it would be recomputed from the name
+    // on every import — and renaming "HUGO 13mm Impact Drill" to "HUGO
+    // Impact Drill 13mm" in a sheet (an ordinary edit) would silently
+    // change that product's URL, 404ing every indexed page, inbound
+    // link and shared WhatsApp link pointing at it. With no prices and
+    // no cart, organic search is the entire funnel.
+    //
+    // Renames are therefore surfaced for a human to approve, never
+    // applied automatically.
+    const impliedSlug = slugify(row.slug || `${row.name}-${sku}`);
+    if (existingBy.has(sku)) {
+      const current = existingBy.get(sku).slug;
+      if (current && impliedSlug !== current) {
+        slugChanges.push({ sku, from: current, to: impliedSlug });
+      }
+      updates.push(record);
+    } else {
+      record.slug = impliedSlug;
+      creates.push(record);
+    }
   });
 
   // Reported, never touched. The client WILL send partial files.
@@ -215,6 +237,19 @@ async function main() {
       });
       console.log(`    ${u.sku}: ${diffs.length ? diffs.join(', ') : 'no change'}`);
     }
+    console.log('');
+  }
+
+  if (slugChanges.length) {
+    console.log('  URL CHANGES IMPLIED BY THIS FILE — NOT APPLIED');
+    console.log('    These products were renamed in the file. Their existing');
+    console.log('    URLs are kept, because changing one breaks every indexed');
+    console.log('    page and shared link pointing at it. Rename deliberately');
+    console.log('    in the admin if you really want a new URL.');
+    for (const c of slugChanges.slice(0, 15)) {
+      console.log(`    ${c.sku}: /${c.from}  (file implies /${c.to})`);
+    }
+    if (slugChanges.length > 15) console.log(`    ...and ${slugChanges.length - 15} more`);
     console.log('');
   }
 
