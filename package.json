@@ -4,7 +4,9 @@
   "private": true,
   "description": "Bestech (Pvt) Ltd product catalogue — Postgres source of truth, pre-rendered to static HTML.",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:cache": "node scripts/build.mjs --from-cache",
@@ -13,7 +15,8 @@
     "dev": "node scripts/dev-fixture.mjs && node scripts/build.mjs --from-cache && node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
     "import": "node import/import.mjs",
-    "backup": "node scripts/backup.mjs"
+    "backup": "node scripts/backup.mjs",
+    "test": "node --test \"test/*.test.mjs\""
   },
   "dependencies": {},
   "devDependencies": {}

@@ -67,6 +67,8 @@ npm run serve         # preview dist/ locally
 npm run import -- catalogue.jsonl            # dry run, writes nothing
 npm run import -- catalogue.jsonl --apply    # commit it
 npm run backup                               # export to backups/
+
+npm test              # node:test, built in — nothing to install
 ```
 
 Copy `.env.example` to `.env` and fill it in. `SUPABASE_SERVICE_ROLE_KEY`
@@ -148,6 +150,45 @@ catalogue file arrives in.
 
 ---
 
+## The admin
+
+`/admin/` on the built site. A static page that talks straight to
+Postgres — there is no admin server, and every rule that protects the
+data is a row-level-security policy in the database rather than a check
+in the UI. An admin that enforces its own permissions is one `curl`
+away from being bypassed; here the worst a hostile client can do is
+exactly what that signed-in user could already do.
+
+**Photographs are resized in the browser.** A 12MB phone photo becomes
+three WebP derivatives (400/800/1600) totalling ~200KB before anything
+is uploaded. That removes the usual `sharp`-on-a-server dependency
+entirely, and makes uploading 250 products' photos practical over a
+domestic connection.
+
+**Bulk upload matches photos to products by filename.** Name the files
+after the model number and drag the whole folder in:
+
+```
+HG-ID13.jpg      -> HG-ID13, main photo
+HG-ID13-2.jpg    -> HG-ID13, second photo
+hg_id13_3.JPG    -> HG-ID13, third photo
+HG-ID13 (2).jpg  -> HG-ID13, second photo   (what Windows names a copy)
+```
+
+Matching ignores case and punctuation, and a model number that ends in
+digits (`HM-JET100`) is not mistaken for an index. Anything unmatched is
+listed with a dropdown rather than guessed at. This is the single
+highest-risk function in the project, so it has its own test file.
+
+**Publishing is a database row, not a deploy hook.** The admin is served
+to anyone who asks for it, so a deploy-hook URL inside it would be
+public — and a deploy hook is a bearer credential. Pressing Publish
+inserts a request; CI picks it up within 15 minutes, rebuilds and marks
+it done. The deploy credential never leaves CI, and there is a record of
+who published what and when.
+
+---
+
 ## Layout
 
 ```
@@ -162,6 +203,9 @@ scripts/serve.mjs      local preview only — never runs in production
 scripts/backup.mjs     DB -> the same JSONL the importer reads
 import/import.mjs      JSONL -> DB
 static/                CSS, JS, host config. Copied verbatim into dist/
+static/admin/          the admin, served at /admin/
+test/                  node:test. `npm test`
+.github/workflows/     build, test, publish, nightly backup
 dist/                  build output. Not committed
 ```
 
@@ -184,9 +228,10 @@ that actually changed, so a one-product edit is a one-file deploy.
 
 ## Still to do
 
-- Admin UI for editing products and uploading photos
-- Image upload pipeline (original → 400/800/1600 WebP)
 - Supabase project + the first `supabase db push`
+- GitHub secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `IMAGE_BASE_URL`; and the `SITE_ORIGIN`
+  variable
 - Real catalogue data and photography (~250 best sellers)
 - Domain: `bestechlanka.com` lapsed and the company mailbox is dead with
   it, so a domain in Bestech's own name has to be registered before the
