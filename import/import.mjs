@@ -36,7 +36,7 @@
 import { readFileSync } from 'node:fs';
 // All database access goes through the one seam, so moving off Supabase
 // changes lib/db.mjs and nothing in here.
-import { queryAll, upsert, assertConfigured } from '../lib/db.mjs';
+import { queryAll, upsert, assertCanWrite } from '../lib/db.mjs';
 
 const args = process.argv.slice(2);
 const FILE = args.find((a) => !a.startsWith('--'));
@@ -45,7 +45,10 @@ const APPLY = args.includes('--apply');
 function die(msg) { console.error(`\n  ${msg}\n`); process.exit(1); }
 
 if (!FILE) die('usage: node import/import.mjs <file.jsonl> [--apply]');
-try { assertConfigured(); } catch (e) { die(e.message); }
+// Checked even for a dry run: with a read-only key the importer would see
+// only published rows, so every draft would be reported as a CREATE and
+// the plan shown to the operator would be wrong.
+try { assertCanWrite('Importing'); } catch (e) { die(e.message); }
 
 const slugify = (s) =>
   String(s).toLowerCase().trim()

@@ -29,7 +29,7 @@
 
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { queryAll } from '../lib/db.mjs';
+import { queryAll, assertCanWrite } from '../lib/db.mjs';
 
 const args = process.argv.slice(2);
 const outFlag = args.indexOf('--out');
@@ -40,6 +40,11 @@ const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const OUT = outFlag >= 0 ? args[outFlag + 1] : `backups/catalogue-${stamp}.jsonl`;
 
 async function main() {
+  // A publishable key can only see published rows, so a backup taken
+  // with one would silently omit every draft and archived product -
+  // and nobody finds out until the day they try to restore it.
+  assertCanWrite('Taking a backup');
+
   console.log('\n  Exporting catalogue...\n');
 
   // Paged reads - never a hardcoded limit that silently truncates.
