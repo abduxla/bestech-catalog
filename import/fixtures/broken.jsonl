@@ -1,0 +1,9 @@
+{"name": "No model number here", "brand": "HUGO"}
+{"sku": "", "name": "Blank sku"}
+{"sku": "DUP-1", "name": "First"}
+{"sku": "DUP-1", "name": "Second with same sku"}
+{"sku": "NO-NAME"}
+{"sku": "BAD-SPECS-1", "name": "Specs as object not array", "specs": {"Power": "2.5"}}
+{"sku": "BAD-SPECS-2", "name": "Row missing label", "specs": [{"rows": [{"unit": "HP", "value": "2.5"}]}]}
+{"sku": "BAD-BRAND", "name": "Unknown brand", "brand": "Definitely Not A Brand"}
+{"sku": "BAD-CAT", "name": "Unknown category", "category_path": "Power Tools & Machinery > Nope > Nothing"}
