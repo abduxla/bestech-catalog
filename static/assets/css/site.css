@@ -877,3 +877,58 @@ p.hero__title {
 .supportcard h3 { font-size: 21px; margin-bottom: 10px; }
 .supportcard p { color: var(--ink-soft); font-size: 15px; flex: 1 1 auto; }
 .btn--block { display: block; width: 100%; text-align: center; margin-top: 18px; }
+
+/* =====================================================================
+   The counter interstitial
+
+   A <dialog>, so the backdrop, Escape, focus trapping and inertness
+   behind it all come from the browser.
+   ===================================================================== */
+.modal {
+  padding: 0; border: 0; max-width: 860px; width: calc(100% - 40px);
+  background: var(--white); color: var(--ink);
+  box-shadow: 0 30px 80px rgba(0,0,0,.45);
+}
+.modal::backdrop { background: rgba(8,10,12,.72); }
+.modal[open] { animation: modalIn .28s cubic-bezier(.2,.7,.3,1); }
+@keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+
+.modal__grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); }
+.modal__media { position: relative; background: var(--wash); overflow: hidden; }
+.modal__media img { width: 100%; height: 100%; object-fit: cover; }
+
+.modal__body { position: relative; padding: 42px 44px 38px; }
+.modal__eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--red); margin-bottom: 10px;
+}
+.modal__title { font-size: clamp(26px, 3.4vw, 38px); margin-bottom: 16px; }
+.modal__body p { color: var(--ink-soft); font-size: 15.5px; }
+.modal__ready { font-size: 14.5px; }
+.modal__ready strong { color: var(--ink); }
+.modal__actions { margin: 22px 0 14px; display: grid; gap: 9px; }
+.modal__actions .btn span {
+  font-weight: 400; font-size: 11.5px; letter-spacing: .08em; opacity: .85;
+}
+
+.modal__close {
+  position: absolute; top: 14px; right: 16px;
+  width: 36px; height: 36px; display: grid; place-items: center;
+  background: none; border: 0; cursor: pointer;
+  font-size: 26px; line-height: 1; color: var(--steel);
+}
+.modal__close:hover { color: var(--ink); }
+
+/* A plain, obvious way out that is not the small cross in the corner. */
+.modal__dismiss {
+  background: none; border: 0; padding: 6px 0; cursor: pointer;
+  font: inherit; font-size: 14px; color: var(--steel); text-decoration: underline;
+}
+.modal__dismiss:hover { color: var(--ink); }
+
+@media (max-width: 760px) {
+  .modal__grid { grid-template-columns: 1fr; }
+  .modal__media { height: 160px; }
+  .modal__body { padding: 28px 24px 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .modal[open] { animation: none; } }

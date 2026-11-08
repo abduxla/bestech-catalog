@@ -339,14 +339,19 @@ const bySort = (a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name);
 function heroSlides(d) {
   const withPhoto = d.divisions.filter((x) => x.hero_key);
   const lead = {
-    key: (withPhoto[0] || {}).hero_key || '',
+    // A brand-level photograph for the opening slide, named in
+    // configuration because it belongs to the site rather than to any
+    // one division. Falls back to the first division that has one.
+    key: process.env.HERO_IMAGE_KEY || (withPhoto[0] || {}).hero_key || '',
     eyebrow: SITE.legal,
     title: SITE.tagline,
     sub: `Power tools, machinery and water pumps from ${d.brands.length} brands, stocked and supported in Colombo since 1988.`,
     cta: 'Browse the catalogue',
     href: d.divisions[0] ? url.division(d.divisions[0]) : BASE + '/',
   };
-  const rest = withPhoto.slice(1).map((div) => ({
+  // With a configured lead image, every division becomes its own
+  // slide; without one, the first division supplies the lead.
+  const rest = (process.env.HERO_IMAGE_KEY ? withPhoto : withPhoto.slice(1)).map((div) => ({
     key: div.hero_key,
     eyebrow: div.name,
     title: div.tagline || div.name,
@@ -392,6 +397,7 @@ async function main() {
       // Site furniture rather than catalogue data, so it is named by
       // configuration instead of borrowing a division's hero image -
       // which previously meant the same photograph appeared twice.
+      modalKey: process.env.MODAL_IMAGE_KEY || process.env.SHOWCASE_IMAGE_KEY || '',
       counterKey: process.env.SHOWCASE_IMAGE_KEY || '',
     },
     // Hero slides: one per division that has a photograph, so the

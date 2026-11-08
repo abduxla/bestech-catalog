@@ -315,3 +315,64 @@
 
   show(0);
 })();
+
+/* =====================================================================
+   The counter interstitial.
+
+   Rules it follows, because an overlay that ignores them is just an
+   obstacle:
+
+     * never on a first page view - it waits until someone has shown
+       they are actually looking around;
+     * once per visitor, remembered;
+     * never when the page was opened straight onto a product, where
+       the visitor plainly already knows what they want;
+     * never for anyone who has asked for reduced motion, and never on
+       a narrow screen, where a full-cover overlay is just in the way.
+
+   It is a <dialog>, so Escape, the backdrop, focus trapping and
+   inertness are the browser's job rather than mine.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var dialog = document.querySelector('[data-modal]');
+  if (!dialog || typeof dialog.showModal !== 'function') return;
+
+  var SEEN = 'bestech.counterPrompt';
+  var VIEWS = 'bestech.views';
+
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function write(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+
+  // Close handlers first, so the dialog can always be dismissed even
+  // if something below throws.
+  [].forEach.call(dialog.querySelectorAll('[data-modal-close]'), function (b) {
+    b.addEventListener('click', function () { dialog.close(); });
+  });
+  // Clicking the backdrop closes it: the click lands on the dialog
+  // itself rather than on anything inside it.
+  dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
+  dialog.addEventListener('close', function () { write(SEEN, '1'); });
+
+  if (read(SEEN)) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(max-width: 760px)').matches) return;
+
+  var views = Number(read(VIEWS) || '0') + 1;
+  write(VIEWS, String(views));
+  if (views < 2) return;          // not on a first page view
+
+  var timer = setTimeout(function () {
+    if (!dialog.open) dialog.showModal();
+  }, 9000);
+
+  // Someone heading for the tab bar is leaving; that is the one moment
+  // the offer is worth making early.
+  document.addEventListener('mouseout', function (e) {
+    if (e.clientY <= 0 && !dialog.open && !read(SEEN)) {
+      clearTimeout(timer);
+      dialog.showModal();
+    }
+  });
+})();
