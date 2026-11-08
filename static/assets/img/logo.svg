@@ -1,0 +1,37 @@
+<!--
+  Bestech mark — bull head.
+
+  Hand-drawn SVG rather than a generated bitmap: crisp on a phone and
+  on a 5K display, about 1KB, and editable in a text editor in five
+  years without hunting for the original design file.
+
+  Colours are explicit rather than currentColor, because an <img> tag
+  does not inherit CSS from the page that embeds it — the first
+  version of this file rendered black everywhere for exactly that
+  reason.
+
+  PLACEHOLDER, drawn from the bull device on Bestech's own material.
+  If the company still has the original artwork, it should replace this.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 110" role="img" aria-label="Bestech">
+  <!-- Horns: crescents, thick at the base and tapering to a point that
+       is the HIGHEST and OUTERMOST part of the mark. Getting that
+       wrong is what made the first attempt look like a spaniel. -->
+  <path fill="#e01b22" d="M52 34 C39 30 22 23 8 5 C13 21 25 34 50 42 Z"/>
+  <path fill="#e01b22" d="M108 34 C121 30 138 23 152 5 C147 21 135 34 110 42 Z"/>
+
+  <!-- Head: a broad brow with straight angled sides tapering to a
+       rounded muzzle. Angular, not circular — it has to read as
+       livestock, and as industrial. -->
+  <path fill="#e01b22"
+        d="M52 26 L108 26 L102 64 C99 81 91 92 80 92 C69 92 61 81 58 64 Z"/>
+
+  <!-- Eyes and nostrils, knocked through so the silhouette still reads
+       as a bull at 24px in a browser tab. -->
+  <g fill="#fff">
+    <ellipse cx="68" cy="45" rx="6" ry="7.5"/>
+    <ellipse cx="92" cy="45" rx="6" ry="7.5"/>
+    <ellipse cx="74" cy="72" rx="4" ry="5"/>
+    <ellipse cx="86" cy="72" rx="4" ry="5"/>
+  </g>
+</svg>

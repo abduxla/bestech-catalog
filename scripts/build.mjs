@@ -314,6 +314,10 @@ async function main() {
     brands: d.brands,
     featured: featured.length ? featured : d.products.slice(0, 12),
     total: d.products.length,
+    // The hero photograph comes from the first division that has one,
+    // so it is managed in the admin like everything else rather than
+    // being a filename baked into the template.
+    heroKey: (d.divisions.find((x) => x.hero_key) || {}).hero_key || '',
   }, ctx));
   if (home) { emit(url.home(), home); track(url.home(), '1.0'); }
 

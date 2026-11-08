@@ -125,7 +125,7 @@ async function main() {
   // "all creates" and duplicate everything already in the database.
   const [brands, categories, existing] = await Promise.all([
     queryAll('brands', { select: 'id,slug,name', order: 'sort.asc' }),
-    queryAll('categories', { select: 'id,slug,name,path', order: 'path.asc' }),
+    queryAll('categories', { select: 'id,parent_id,slug,name,path', order: 'path.asc' }),
     queryAll('products', {
       select: 'sku,slug,name,summary,description,status,specs,brand_id,primary_category_id',
       order: 'sku.asc',
@@ -135,7 +135,28 @@ async function main() {
   const brandBy = new Map();
   for (const b of brands) { brandBy.set(b.slug, b); brandBy.set(slugify(b.name), b); }
   const catByPath = new Map(categories.map((c) => [c.path, c]));
-  const catByLeaf = new Map(categories.map((c) => [c.slug, c]));
+  const catById = new Map(categories.map((c) => [c.id, c]));
+
+  // Categories are matched on their NAME as well as their slug.
+  //
+  // A slug is chosen for the URL and a name is written for people, and
+  // the two routinely differ: "Arc / MMA Welders" slugifies to
+  // "arc-mma-welders" but lives at "arc-welders". A spreadsheet will
+  // always carry the name, so matching only on slugified names would
+  // reject most of a real catalogue for no good reason.
+  //
+  // Keys can collide - "Accessories" under two parents - so each key
+  // holds every candidate and an ambiguous match is REJECTED with the
+  // options listed, never silently resolved to the first one.
+  const norm = (x) => String(x).toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const catByKey = new Map();
+  const addKey = (k, c) => {
+    if (!k) return;
+    if (!catByKey.has(k)) catByKey.set(k, []);
+    const bucket = catByKey.get(k);
+    if (!bucket.includes(c)) bucket.push(c);
+  };
+  for (const c of categories) { addKey(norm(c.slug), c); addKey(norm(c.name), c); }
   const existingBy = new Map(existing.map((p) => [p.sku, p]));
 
   const creates = [], updates = [], rejects = [], slugChanges = [];
@@ -160,11 +181,33 @@ async function main() {
     // Resolve category: full " > " path, else the leaf name
     let primary_category_id = null;
     if (row.category_path) {
-      const parts = String(row.category_path).split('>').map((s) => slugify(s));
-      const path = parts.join('/');
-      const c = catByPath.get(path) || catByLeaf.get(parts[parts.length - 1]);
-      if (!c) errs.push(`unknown category "${row.category_path}" — create it first`);
-      else primary_category_id = c.id;
+      const raw = String(row.category_path).split('>').map((x) => x.trim()).filter(Boolean);
+      const slugPath = raw.map((x) => slugify(x)).join('/');
+      const leaf = raw[raw.length - 1];
+      const parent = raw.length > 1 ? raw[raw.length - 2] : null;
+
+      let c = catByPath.get(slugPath) || null;
+      if (!c) {
+        let candidates = catByKey.get(norm(leaf)) || [];
+        // Several categories share this name: use the parent written in
+        // the file to choose between them.
+        if (candidates.length > 1 && parent) {
+          const narrowed = candidates.filter((x) => {
+            const p = x.parent_id ? catById.get(x.parent_id) : null;
+            return p && (norm(p.name) === norm(parent) || norm(p.slug) === norm(parent));
+          });
+          if (narrowed.length) candidates = narrowed;
+        }
+        if (candidates.length === 1) c = candidates[0];
+        else if (candidates.length > 1) {
+          errs.push(`category "${row.category_path}" is ambiguous - matches ` +
+            candidates.map((x) => x.path).join(', ') + ' - use the full path');
+        }
+      }
+      if (!c && !errs.some((e) => e.startsWith('category'))) {
+        errs.push(`unknown category "${row.category_path}" — create it first`);
+      }
+      if (c) primary_category_id = c.id;
     }
 
     if (errs.length) { rejects.push({ line: i + 1, sku: sku || '?', errs }); return; }
