@@ -112,7 +112,8 @@ p { margin: 0 0 1em; }
    BE in red and STECH in white, with a letterspaced tagline beneath. */
 .brand { display: flex; align-items: center; gap: 10px; flex: none; }
 .brand:hover { color: inherit; }
-.brand__mark { width: 30px; height: 34px; flex: none; }
+/* The real artwork is wider than it is tall; height follows. */
+.brand__mark { width: 42px; height: auto; flex: none; }
 .brand__text { display: flex; flex-direction: column; gap: 1px; }
 .brand__word {
   font-family: var(--cond); font-size: 27px; font-weight: 700; line-height: 1;
@@ -564,7 +565,7 @@ p { margin: 0 0 1em; }
   }
   .brand { order: 1; }
   .brand__word { font-size: 21px; }
-  .brand__mark { width: 25px; height: 28px; }
+  .brand__mark { width: 34px; }
   .brand__tag { font-size: 8.5px; letter-spacing: .22em; }
 
   .header__call { order: 2; margin-left: auto; }
