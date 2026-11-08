@@ -974,3 +974,125 @@ p.hero__title {
   .modal__body { padding: 28px 24px 26px; }
 }
 @media (prefers-reduced-motion: reduce) { .modal[open] { animation: none; } }
+
+/* =====================================================================
+   Enquiry form
+   ===================================================================== */
+.eform__row {
+  display: grid; gap: 16px; margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.eform__field { display: block; margin-bottom: 16px; }
+.eform__row .eform__field { margin-bottom: 0; }
+
+.eform__label {
+  display: block; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-soft); margin-bottom: 7px;
+}
+.eform__label i { color: var(--red); font-style: normal; }
+
+.eform input, .eform select, .eform textarea {
+  width: 100%; padding: 13px 15px; font: inherit; font-size: 15px;
+  background: var(--wash); color: var(--ink);
+  border: 1px solid transparent; border-radius: var(--radius);
+}
+.eform input::placeholder, .eform textarea::placeholder { color: #9aa1aa; }
+.eform input:focus, .eform select:focus, .eform textarea:focus {
+  background: var(--white); border-color: var(--red); outline: none;
+  box-shadow: 0 0 0 3px rgba(224,27,34,.14);
+}
+/* Only after the browser has judged it, so a field is never red
+   simply because it has not been filled in yet. */
+.eform input:user-invalid, .eform select:user-invalid, .eform textarea:user-invalid {
+  border-color: var(--red); background: #fdf3f3;
+}
+.eform select { cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a5059' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 18px;
+  padding-right: 42px;
+}
+.eform textarea { resize: vertical; line-height: 1.5; }
+.eform__hint { display: block; font-size: 12.5px; color: var(--steel); margin-top: 6px; }
+
+/* Off-screen rather than display:none - some bots skip anything that
+   is not rendered. */
+.eform__trap {
+  position: absolute; left: -9999px; width: 1px; height: 1px;
+  overflow: hidden;
+}
+
+.eform__foot { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 20px; }
+.eform__foot .btn span { margin-left: 6px; }
+.eform__required { margin: 0; font-size: 12.5px; color: var(--steel); }
+.eform__required i { color: var(--red); font-style: normal; }
+
+.eform__status { margin: 14px 0 0; font-size: 14.5px; }
+.eform__status:empty { margin: 0; }
+.eform__status.is-ok  { color: var(--ok, #1a7f4b); font-weight: 600; }
+.eform__status.is-err { color: var(--red); font-weight: 600; }
+
+.eform--compact input, .eform--compact select, .eform--compact textarea { padding: 10px 12px; font-size: 14.5px; }
+.eform--compact .eform__row { gap: 12px; margin-bottom: 12px; }
+.eform--compact .eform__field { margin-bottom: 12px; }
+.eform--compact .eform__foot { margin-top: 14px; }
+
+
+/* =====================================================================
+   Contact band
+   ===================================================================== */
+.contact { background: var(--ink); color: var(--white); }
+.contact__grid {
+  display: grid; gap: 56px; padding: 78px var(--gutter);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 660px); align-items: start;
+}
+.contact__eyebrow {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px; font-weight: 700; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--white); margin-bottom: 14px;
+}
+.contact__tick { display: block; width: 34px; height: 9px; background: var(--red); }
+.contact__lead h2 { color: var(--white); margin-bottom: 14px; }
+.contact__blurb { color: #c3c7cd; font-size: 16.5px; max-width: 54ch; }
+
+.contact__places {
+  display: grid; gap: 28px; margin-top: 34px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.contact__place h3 {
+  font-family: var(--sans); font-weight: 800; font-size: 12px;
+  letter-spacing: .09em; color: var(--white); margin-bottom: 8px;
+}
+.contact__place p { color: #9aa1aa; font-size: 14.5px; margin-bottom: 10px; }
+.contact__tel {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 700; color: var(--white);
+}
+.contact__tel .icon { width: 17px; height: 17px; color: var(--red); }
+.contact__tel:hover { color: var(--red); }
+
+.contact__hours {
+  margin-top: 30px; padding-top: 22px; border-top: 1px solid #2b2f35;
+  color: #9aa1aa; font-size: 14px;
+}
+
+.contact__card { background: var(--white); color: var(--ink); padding: 40px 42px; }
+.contact__card h3 { font-size: 24px; margin-bottom: 22px; }
+
+@media (max-width: 1000px) {
+  .contact__grid { grid-template-columns: 1fr; gap: 36px; padding: 52px var(--gutter); }
+  .contact__card { padding: 28px 24px; }
+}
+
+/* The product page keeps the telephone as a secondary route. */
+.pdp__or { font-size: 14px; color: var(--ink-soft); margin: 12px 0 6px; }
+.pdp__or a { font-weight: 700; color: var(--ink); }
+.pdp__or a:hover { color: var(--red); }
+.empty .btn { margin-left: 10px; }
+
+/* Present to assistive technology, absent on screen. Used where a
+   brand logo already carries the name as artwork. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

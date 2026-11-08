@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 import { queryAll, assertConfigured } from '../lib/db.mjs';
 import {
   layout, productPage, listingPage, homePage, brandsIndexPage, redirectStub,
-  url, SITE, BASE, assets,
+  url, SITE, BASE, assets, site,
 } from '../lib/render.mjs';
 import { imageUrl } from '../lib/images.mjs';
 
@@ -366,6 +366,9 @@ function heroSlides(d) {
 async function main() {
   console.log(`\n  Building ${SITE.name} -> dist/\n`);
   hashAssets();   // must run before the first page is rendered
+  // The enquiry modal appears on every page, so its photograph is a
+  // site-wide value rather than a home page prop.
+  site.modalKey = process.env.MODAL_IMAGE_KEY || process.env.SHOWCASE_IMAGE_KEY || '';
   const snap = await load();
   const d = shape(snap);
   const ctx = { nav: d.nav, origin: ORIGIN };

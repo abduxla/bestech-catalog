@@ -355,6 +355,9 @@
   dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
   dialog.addEventListener('close', function () { write(SEEN, '1'); });
 
+  // Opening on a timer is home-page only; every other page still
+  // has the dialog, opened by an enquiry button.
+  if (!dialog.hasAttribute('data-modal-auto')) return;
   if (read(SEEN)) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   if (window.matchMedia('(max-width: 760px)').matches) return;
@@ -374,5 +377,105 @@
       clearTimeout(timer);
       dialog.showModal();
     }
+  });
+})();
+
+/* =====================================================================
+   Enquiry buttons and the enquiry form.
+
+   Both degrade: an enquiry button is an anchor to #contact, so with no
+   JavaScript it still reaches a working form; and the form is a real
+   <form> with real validation attributes, so the browser checks it
+   whether or not this runs.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var CFG = window.BESTECH_CONFIG || {};
+  var dialog = document.querySelector('[data-modal]');
+
+  // ---- buttons open the modal in place -------------------------------
+  if (dialog && typeof dialog.showModal === 'function') {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-enquire]');
+      if (!btn) return;
+      e.preventDefault();
+      var src = btn.getAttribute('data-enquiry-source');
+      if (src) {
+        var form = dialog.querySelector('[data-enquiry]');
+        if (form) form.setAttribute('data-source', src);
+      }
+      if (!dialog.open) dialog.showModal();
+    });
+  }
+
+  // ---- submission ----------------------------------------------------
+  document.querySelectorAll('[data-enquiry]').forEach(function (form) {
+    var status = form.querySelector('[data-enquiry-status]');
+    var submit = form.querySelector('[data-enquiry-submit]');
+
+    function say(msg, kind) {
+      if (!status) return;
+      status.textContent = msg;
+      status.className = 'eform__status' + (kind ? ' is-' + kind : '');
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      // Use the browser's own validation rather than reimplementing it.
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      var data = new FormData(form);
+
+      // Honeypot: a person never sees this field. Pretend it worked,
+      // so a bot gets no signal about why nothing happened.
+      if ((data.get('website') || '').trim()) { say('Thank you — we will be in touch.', 'ok'); form.reset(); return; }
+
+      if (!CFG.supabaseUrl || !CFG.anonKey) {
+        say('This form is not connected yet. Please telephone us in the meantime.', 'err');
+        return;
+      }
+
+      var body = {
+        name: (data.get('name') || '').trim(),
+        company: (data.get('company') || '').trim(),
+        contact: (data.get('contact') || '').trim(),
+        interest: (data.get('interest') || '').trim(),
+        message: (data.get('message') || '').trim(),
+        // Where it came from, plus the page, so the counter knows what
+        // the person was looking at when they asked.
+        source: (form.getAttribute('data-source') || '') + ' · ' + location.pathname,
+      };
+
+      submit.disabled = true;
+      var original = submit.innerHTML;
+      submit.textContent = 'Sending…';
+      say('');
+
+      fetch(CFG.supabaseUrl.replace(/\/+$/, '') + '/rest/v1/enquiries', {
+        method: 'POST',
+        headers: {
+          apikey: CFG.anonKey,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify([body]),
+      }).then(function (res) {
+        if (!res.ok) return res.text().then(function (t) { throw new Error(t || res.status); });
+        form.reset();
+        say('Thank you — your enquiry is with our counter. We will come back to you.', 'ok');
+        submit.innerHTML = original;
+      }).catch(function (err) {
+        var missing = /relation .*enquiries.* does not exist|PGRST205/i.test(String(err));
+        say(missing
+          ? 'The enquiry system is not switched on yet. Please telephone us in the meantime.'
+          : 'Sorry — that did not send. Please telephone us, or try again in a moment.', 'err');
+        submit.innerHTML = original;
+      }).finally(function () { submit.disabled = false; });
+    });
   });
 })();
