@@ -155,3 +155,73 @@
     });
   }
 })();
+
+/* =====================================================================
+   Carousel rails and filter tabs.
+
+   Both are enhancements, not requirements. The rail is a plain
+   overflow-x container with scroll-snap, so it already scrolls by
+   touch, trackpad and keyboard with no JavaScript; this only adds
+   arrow buttons and hides them when there is nothing to scroll. The
+   tabs filter cards that are all present in the markup, so a visitor
+   without JavaScript sees every product rather than none.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  // ---- rails ----
+  document.querySelectorAll('[data-rail]').forEach(function (rail) {
+    var track = rail.querySelector('[data-rail-track]');
+    var prev = rail.querySelector('[data-rail-prev]');
+    var next = rail.querySelector('[data-rail-next]');
+    if (!track || !prev || !next) return;
+
+    function step() {
+      // Scroll by one card plus its gap, so a click never leaves a
+      // card sliced in half at the edge.
+      var card = track.firstElementChild;
+      return card ? card.getBoundingClientRect().width + 22 : track.clientWidth * 0.8;
+    }
+
+    function sync() {
+      var overflow = track.scrollWidth - track.clientWidth;
+      if (overflow < 8) { prev.hidden = true; next.hidden = true; return; }
+      prev.hidden = false; next.hidden = false;
+      prev.disabled = track.scrollLeft < 8;
+      next.disabled = track.scrollLeft > overflow - 8;
+    }
+
+    prev.addEventListener('click', function () { track.scrollBy({ left: -step(), behavior: 'smooth' }); });
+    next.addEventListener('click', function () { track.scrollBy({ left: step(), behavior: 'smooth' }); });
+    track.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    sync();
+    // Cards carry images that change the track width once decoded.
+    if (window.ResizeObserver) new ResizeObserver(sync).observe(track);
+  });
+
+  // ---- tabs ----
+  document.querySelectorAll('[data-tabs]').forEach(function (group) {
+    var section = group.closest('section');
+    if (!section) return;
+    var cards = section.querySelectorAll('[data-division]');
+    if (!cards.length) return;
+
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var want = btn.getAttribute('data-tab');   // null on the "All" button
+
+      group.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+
+      cards.forEach(function (c) {
+        c.hidden = Boolean(want) && c.getAttribute('data-division') !== want;
+      });
+
+      // The rail's arrows depend on how much is now visible.
+      var track = section.querySelector('[data-rail-track]');
+      if (track) { track.scrollLeft = 0; window.dispatchEvent(new Event('resize')); }
+    });
+  });
+})();

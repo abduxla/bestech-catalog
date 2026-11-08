@@ -290,8 +290,12 @@ p { margin: 0 0 1em; }
 .division__count { margin-left: auto; font-size: 13px; color: var(--steel); white-space: nowrap; }
 
 .division__tiles {
-  display: grid; gap: 20px; margin: 28px 0 20px;
+  display: grid; gap: 20px; margin: 0 0 28px;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  /* Without this, every tile stretches to match the tallest label in
+     the row, leaving a dead band of white under all the single-line
+     ones. */
+  align-items: start;
 }
 .tile { display: block; border: 1px solid var(--line); transition: border-color .13s, box-shadow .13s; }
 .tile:hover { border-color: var(--red); box-shadow: var(--shadow); }
@@ -421,7 +425,10 @@ p { margin: 0 0 1em; }
   text-transform: uppercase; letter-spacing: .03em;
 }
 .brandcard__logo img { max-height: 56px; width: auto; object-fit: contain; }
-.brandcard__name { display: block; font-size: 14px; font-weight: 600; }
+.brandcard__name {
+  display: block; font-family: var(--cond); font-weight: 900; font-stretch: 125%;
+  font-size: 19px; letter-spacing: -.01em; text-transform: uppercase;
+}
 .brandcard__count { display: block; font-size: 12.5px; color: var(--steel); margin-top: 3px; }
 
 
@@ -575,4 +582,119 @@ p { margin: 0 0 1em; }
   .site-header, .site-footer, .pdp__thumbs, .related, .facets { display: none; }
   body { font-size: 12px; }
   .pdp__grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* =====================================================================
+   Home page bands, rails and tabs
+   ===================================================================== */
+
+/* ---- section rhythm -------------------------------------------------
+   One band primitive instead of six bespoke section paddings. Alternate
+   bands take a wash background, which is what stops a long page of
+   white from reading as an endless scroll. */
+.band { padding: 72px 0; }
+.band--wash { background: var(--wash); }
+.band__head { margin-bottom: 30px; }
+.band__head h2 {
+  margin: 0 0 8px; padding-bottom: 14px;
+  border-bottom: 3px solid var(--ink);
+}
+.band__head--center { text-align: center; }
+.band__head--center h2 { display: inline-block; border-bottom-width: 4px; }
+.band__lede { color: var(--steel); font-size: 16px; max-width: 70ch; margin: 0; }
+
+.btn--ghost {
+  background: transparent; color: var(--ink);
+  border: 2px solid var(--ink); padding: 12px 24px;
+}
+.btn--ghost:hover { background: var(--ink); color: var(--white); }
+.btn--primary { background: var(--red); }
+.btn--primary:hover { background: var(--white); color: var(--ink); }
+
+/* ---- sticky section jump bar ---------------------------------------
+   The reference pins one of these under its header. Horizontal scroll
+   on narrow screens rather than wrapping to two rows. */
+.subnav {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--white); border-bottom: 1px solid var(--line);
+}
+.subnav__inner { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.subnav__inner::-webkit-scrollbar { display: none; }
+.subnav__link {
+  flex: none; padding: 17px 18px; font-size: 14px; font-weight: 600;
+  color: var(--ink-soft); border-bottom: 3px solid transparent; white-space: nowrap;
+}
+.subnav__link:hover { color: var(--ink); border-bottom-color: var(--red); }
+
+/* ---- filter tabs ---------------------------------------------------- */
+.tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+.tab {
+  padding: 10px 22px; border: 1.5px solid var(--ink); border-radius: 999px;
+  background: var(--white); color: var(--ink); cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600;
+}
+.tab:hover { background: var(--line); }
+.tab.is-active { background: var(--ink); color: var(--white); }
+
+/* ---- scrolling rail -------------------------------------------------
+   scroll-snap so a flick always lands on a card edge. The arrows are
+   added by site.js and stay hidden when nothing overflows. */
+.rail { position: relative; }
+.rail__track {
+  display: flex; gap: 22px; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; padding-bottom: 4px;
+}
+.rail__track::-webkit-scrollbar { display: none; }
+.rail__track > * { flex: 0 0 272px; scroll-snap-align: start; }
+
+.rail__arrow {
+  position: absolute; top: 40%; z-index: 2;
+  width: 46px; height: 46px; display: grid; place-items: center;
+  background: var(--red); color: var(--white);
+  border: 0; cursor: pointer; font-size: 26px; line-height: 1;
+  box-shadow: var(--shadow-lg);
+}
+.rail__arrow:hover:not(:disabled) { background: var(--ink); }
+.rail__arrow:disabled { opacity: 0; pointer-events: none; }
+.rail__arrow--prev { left: -14px; }
+.rail__arrow--next { right: -14px; }
+@media (max-width: 760px) { .rail__arrow { display: none; } }
+
+.brandcard--rail { flex: 0 0 210px; display: grid; place-content: center; min-height: 118px; }
+.brandcard--rail .brandcard__count { display: none; }
+
+/* ---- showcase: copy panel overlapping a photograph ------------------ */
+.showcase {
+  position: relative; isolation: isolate;
+  background: var(--ink) var(--showcase-image) center/cover no-repeat;
+  padding: 86px 0;
+}
+.showcase::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgba(10,12,14,.72) 0%, rgba(10,12,14,.25) 70%);
+}
+.showcase__panel {
+  background: var(--white); max-width: 560px; padding: 42px 44px;
+  border-top: 6px solid var(--red);
+}
+.showcase__eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--red); margin-bottom: 12px;
+}
+.showcase__panel h2 { margin-bottom: 16px; }
+.showcase__panel p { color: var(--ink-soft); }
+@media (max-width: 700px) { .showcase__panel { padding: 28px 24px; } }
+
+/* ---- three pillars -------------------------------------------------- */
+.pillars {
+  display: grid; gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.pillar { background: var(--white); padding: 32px 30px; border-top: 5px solid var(--red); }
+.pillar h3 { font-size: 19px; margin-bottom: 12px; }
+.pillar p { color: var(--ink-soft); margin: 0; font-size: 15.5px; }
+
+@media (max-width: 600px) {
+  .band { padding: 48px 0; }
+  .rail__track > * { flex: 0 0 72vw; }
 }

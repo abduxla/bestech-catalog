@@ -265,6 +265,10 @@ function shape(snap) {
       brand_href: brand ? url.brand(brand) : '',
       category: cat || null,
       trail,
+      // Which division this product belongs to, for the home page's
+      // filter tabs.
+      division_slug: cat && divisionById.get(cat.division_id)
+        ? divisionById.get(cat.division_id).slug : '',
       images: imagesByProduct.get(p.id) || [],
       image: (imagesByProduct.get(p.id) || [])[0] || null,
     };
@@ -352,6 +356,12 @@ async function main() {
     // so it is managed in the admin like everything else rather than
     // being a filename baked into the template.
     heroKey: (d.divisions.find((x) => x.hero_key) || {}).hero_key || '',
+    // Editorial photography is managed as division hero images, so it
+    // is editable in the admin like everything else. The first one
+    // backs the hero; a second, if present, backs the showcase band.
+    editorial: {
+      counterKey: (d.divisions.filter((x) => x.hero_key)[1] || {}).hero_key || '',
+    },
   }, ctx));
   if (home) { emit(url.home(), home); track(url.home(), '1.0'); }
 
