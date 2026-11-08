@@ -225,3 +225,93 @@
     });
   });
 })();
+
+/* =====================================================================
+   Hero carousel.
+
+   Slide one is in the markup and visible before any of this runs, so
+   a visitor without JavaScript gets a normal hero rather than an
+   empty box. The controls are added here and stay hidden when there
+   is only one slide.
+
+   Autoplay stops on hover, on keyboard focus, when the tab is hidden,
+   and permanently the moment anyone touches a control. It never runs
+   at all for a visitor who has asked for reduced motion.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var hero = document.querySelector('[data-hero]');
+  if (!hero) return;
+
+  var slides = [].slice.call(hero.querySelectorAll('[data-slide]'));
+  var nav = hero.querySelector('[data-hero-nav]');
+  if (slides.length < 2 || !nav) return;   // one slide needs no controls
+
+  var dots = [].slice.call(nav.querySelectorAll('[data-hero-go]'));
+  var pauseBtn = nav.querySelector('[data-hero-pause]');
+  var pauseIcon = nav.querySelector('[data-hero-pause-icon]');
+  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var DURATION = 7000;
+  var at = 0, timer = null, paused = calm, stopped = calm;
+
+  nav.hidden = false;
+  nav.style.setProperty('--hero-duration', DURATION + 'ms');
+
+  function show(next) {
+    at = (next + slides.length) % slides.length;
+    slides.forEach(function (s, i) {
+      s.classList.toggle('is-active', i === at);
+      if (i === at) s.removeAttribute('aria-hidden');
+      else s.setAttribute('aria-hidden', 'true');
+    });
+    dots.forEach(function (d, i) { d.classList.toggle('is-active', i === at); });
+    restart();
+  }
+
+  function restart() {
+    clearTimeout(timer);
+    // The progress bar is pure CSS: moving .is-active restarts its
+    // animation by itself, so all this has to do is say whether the
+    // slideshow is running.
+    nav.classList.toggle('is-paused', paused && !stopped);
+    nav.classList.toggle('is-stopped', stopped);
+    if (!paused && !stopped) timer = setTimeout(function () { show(at + 1); }, DURATION);
+  }
+
+  function setPaused(v, permanent) {
+    paused = v;
+    if (permanent) stopped = true;
+    if (pauseBtn) {
+      pauseBtn.setAttribute('aria-label', paused ? 'Play slideshow' : 'Pause slideshow');
+      if (pauseIcon) pauseIcon.innerHTML = paused ? '&#9654;' : '&#10073;&#10073;';
+    }
+    restart();
+  }
+
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () { setPaused(true, true); show(Number(d.getAttribute('data-hero-go'))); });
+  });
+  var prev = nav.querySelector('[data-hero-prev]');
+  var next = nav.querySelector('[data-hero-next]');
+  if (prev) prev.addEventListener('click', function () { setPaused(true, true); show(at - 1); });
+  if (next) next.addEventListener('click', function () { setPaused(true, true); show(at + 1); });
+  if (pauseBtn) pauseBtn.addEventListener('click', function () { setPaused(!paused, !paused); });
+
+  // Courtesy pauses: reading, tabbing through, or looking elsewhere.
+  hero.addEventListener('mouseenter', function () { if (!stopped) { paused = true; restart(); } });
+  hero.addEventListener('mouseleave', function () { if (!stopped) { paused = false; restart(); } });
+  hero.addEventListener('focusin', function () { setPaused(true, true); });
+  document.addEventListener('visibilitychange', function () {
+    if (!stopped) { paused = document.hidden; restart(); }
+  });
+
+  // Left and right arrows, once a control has focus.
+  nav.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { setPaused(true, true); show(at - 1); }
+    if (e.key === 'ArrowRight') { setPaused(true, true); show(at + 1); }
+  });
+
+  show(0);
+})();

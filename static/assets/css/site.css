@@ -239,7 +239,7 @@ p { margin: 0 0 1em; }
 .hero {
   position: relative; isolation: isolate;
   background: var(--ink) linear-gradient(135deg, #15181c 0%, #22262c 100%);
-  color: var(--white);
+  color: var(--white); overflow: hidden;
 }
 
 /* With a photograph behind it, the type still has to be readable at a
@@ -698,3 +698,182 @@ p { margin: 0 0 1em; }
   .band { padding: 48px 0; }
   .rail__track > * { flex: 0 0 72vw; }
 }
+
+/* =====================================================================
+   Hero carousel
+   ===================================================================== */
+
+/* Slides are stacked and cross-faded. The first is in the markup and
+   visible before any script runs, so a visitor without JavaScript
+   gets a hero rather than an empty band. */
+.heroslide {
+  position: absolute; inset: 0; opacity: 0; visibility: hidden;
+  transition: opacity .7s ease, visibility .7s;
+  background: var(--ink) var(--hero-image) center 42%/cover no-repeat;
+}
+.heroslide::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8,10,12,.93) 0%, rgba(8,10,12,.76) 46%, rgba(8,10,12,.34) 100%),
+    linear-gradient(0deg, rgba(8,10,12,.80) 0%, rgba(8,10,12,.18) 58%);
+}
+.heroslide.is-active { opacity: 1; visibility: visible; }
+
+/* The first slide stays in normal flow and sets the section height;
+   the others are layered over it. */
+.heroslide:first-child { position: relative; }
+
+.heroslide__inner {
+  position: relative; z-index: 1;
+  min-height: 600px; display: flex; flex-direction: column;
+  padding: 34px var(--gutter) 104px;
+}
+.heroslide__copy { margin-top: auto; max-width: 860px; }
+.heroslide.is-active .heroslide__copy > * {
+  animation: heroRise .62s cubic-bezier(.2,.7,.3,1) both;
+}
+.heroslide.is-active .heroslide__copy > *:nth-child(2) { animation-delay: .07s; }
+.heroslide.is-active .heroslide__copy > *:nth-child(3) { animation-delay: .14s; }
+.heroslide.is-active .heroslide__copy > *:nth-child(4) { animation-delay: .21s; }
+@keyframes heroRise { from { opacity: 0; transform: translateY(22px); } }
+
+/* The title is an h1 on slide one and a p on the rest, so that one
+   page has one level-one heading. It is therefore styled by class. */
+p.hero__title {
+  font-family: var(--cond); font-weight: 900; font-stretch: 125%;
+  font-variation-settings: "wdth" 125; text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+/* ---- controls ---- */
+.heronav {
+  position: absolute; left: 0; right: 0; bottom: 30px; z-index: 3;
+  display: flex; align-items: center; gap: 14px;
+}
+.heronav__arrow, .heronav__pause {
+  width: 38px; height: 38px; flex: none; display: grid; place-items: center;
+  background: rgba(255,255,255,.14); color: var(--white);
+  border: 0; cursor: pointer; font-size: 20px; line-height: 1;
+  transition: background .15s ease;
+}
+.heronav__arrow:hover, .heronav__pause:hover { background: var(--red); }
+.heronav__pause { font-size: 11px; margin-left: 6px; }
+
+.heronav__dots { display: flex; align-items: center; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.heronav__dot {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  background: none; border: 0; cursor: pointer; padding: 10px 0;
+  color: rgba(255,255,255,.55); font: inherit; font-size: 15px; font-weight: 700;
+}
+.heronav__dot:hover, .heronav__dot.is-active { color: var(--white); }
+
+/* The active slide grows a progress bar, so its timing is visible
+   rather than a surprise. */
+/* Driven entirely from CSS. Moving .is-active to another dot restarts
+   its animation for free, so the script never has to poke at inline
+   animation properties - which is what stopped the bar rendering at
+   all on the first attempt. */
+.heronav__bar { display: none; }
+.heronav__dot.is-active .heronav__bar {
+  display: block; position: relative; width: 92px; height: 3px;
+  background: rgba(255,255,255,.3); overflow: hidden;
+}
+.heronav__dot.is-active .heronav__bar::after {
+  content: ""; position: absolute; inset: 0;
+  background: var(--red); transform-origin: left;
+  animation: heroProgress var(--hero-duration, 7000ms) linear forwards;
+}
+/* Paused or stopped: the bar stays, frozen where it got to. */
+.heronav.is-paused .heronav__dot.is-active .heronav__bar::after { animation-play-state: paused; }
+.heronav.is-stopped .heronav__dot.is-active .heronav__bar::after { animation: none; transform: scaleX(1); }
+@keyframes heroProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 700px) {
+  .heroslide__inner { min-height: 470px; padding-bottom: 92px; }
+  .heronav__dot.is-active .heronav__bar { width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heroslide { transition: none; }
+  .heroslide.is-active .heroslide__copy > * { animation: none; }
+}
+
+
+/* =====================================================================
+   Category lead-in cards
+   ===================================================================== */
+.band__head--row { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.band__head--row h2 { flex: none; margin-bottom: 0; border-bottom: 0; padding-bottom: 0; }
+.band__head--row .band__lede { padding-bottom: 6px; }
+
+.solution {
+  position: relative; display: block; overflow: hidden;
+  background: var(--ink); aspect-ratio: 3 / 4; color: var(--white);
+}
+.solution__media { position: absolute; inset: 0; }
+.solution__media img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .5s cubic-bezier(.2,.7,.3,1);
+}
+.solution:hover .solution__media img { transform: scale(1.07); }
+.solution::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(8,10,12,.90) 0%, rgba(8,10,12,.32) 50%, rgba(8,10,12,.08) 100%);
+}
+.solution__body {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+  padding: 26px 24px;
+}
+.solution__title {
+  display: block; font-family: var(--cond); font-weight: 900; font-stretch: 125%;
+  font-variation-settings: "wdth" 125;
+  font-size: 23px; line-height: 1.04; letter-spacing: -.015em;
+  text-transform: uppercase; color: #f4f1ea; margin-bottom: 8px;
+}
+.solution__cta {
+  display: block; font-size: 12.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--red);
+}
+.solution:hover .solution__cta { color: var(--white); }
+.rail__track > .solution { flex: 0 0 300px; }
+
+
+/* =====================================================================
+   Enquiry band — solid colour, in the reference's newsletter slot
+   ===================================================================== */
+.enquiry { background: var(--red); color: var(--white); }
+.enquiry__grid {
+  display: grid; gap: 46px; padding: 66px var(--gutter);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px); align-items: center;
+}
+.enquiry__lead h2 { color: var(--white); margin: 26px 0; }
+.enquiry__eyebrow {
+  font-size: 12.5px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; margin: 0;
+}
+.enquiry__bar { display: block; height: 8px; background: var(--ink); max-width: 560px; }
+.enquiry__card { background: var(--white); color: var(--ink); padding: 36px 38px; }
+.enquiry__card h3 { font-size: 21px; margin-bottom: 12px; }
+.enquiry__card p { color: var(--ink-soft); }
+.enquiry__actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 14px; }
+.enquiry__card .muted { margin: 0; }
+@media (max-width: 900px) {
+  .enquiry__grid { grid-template-columns: 1fr; gap: 28px; padding: 48px var(--gutter); }
+  .enquiry__card { padding: 26px 24px; }
+}
+
+
+/* =====================================================================
+   Support cards
+   ===================================================================== */
+.support {
+  display: grid; gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.supportcard {
+  background: var(--white); border: 1px solid var(--line);
+  padding: 30px 28px 28px; display: flex; flex-direction: column;
+}
+.supportcard .icon { width: 34px; height: 34px; color: var(--red); margin-bottom: 18px; }
+.supportcard h3 { font-size: 21px; margin-bottom: 10px; }
+.supportcard p { color: var(--ink-soft); font-size: 15px; flex: 1 1 auto; }
+.btn--block { display: block; width: 100%; text-align: center; margin-top: 18px; }

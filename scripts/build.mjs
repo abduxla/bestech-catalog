@@ -328,6 +328,35 @@ function shape(snap) {
 
 const bySort = (a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name);
 
+/**
+ * Hero slides, built from the divisions that have a photograph.
+ *
+ * Copy lives here rather than in the template so that adding a
+ * division, or giving one a hero image in the admin, adds a slide
+ * without anybody editing code. With one photograph there is one
+ * slide and the carousel controls hide themselves.
+ */
+function heroSlides(d) {
+  const withPhoto = d.divisions.filter((x) => x.hero_key);
+  const lead = {
+    key: (withPhoto[0] || {}).hero_key || '',
+    eyebrow: SITE.legal,
+    title: SITE.tagline,
+    sub: `Power tools, machinery and water pumps from ${d.brands.length} brands, stocked and supported in Colombo since 1988.`,
+    cta: 'Browse the catalogue',
+    href: d.divisions[0] ? url.division(d.divisions[0]) : BASE + '/',
+  };
+  const rest = withPhoto.slice(1).map((div) => ({
+    key: div.hero_key,
+    eyebrow: div.name,
+    title: div.tagline || div.name,
+    sub: div.blurb || '',
+    cta: `See ${div.name}`,
+    href: url.division(div),
+  }));
+  return [lead, ...rest];
+}
+
 // ---------------------------------------------------------------------
 async function main() {
   console.log(`\n  Building ${SITE.name} -> dist/\n`);
@@ -360,8 +389,24 @@ async function main() {
     // is editable in the admin like everything else. The first one
     // backs the hero; a second, if present, backs the showcase band.
     editorial: {
-      counterKey: (d.divisions.filter((x) => x.hero_key)[1] || {}).hero_key || '',
+      // Site furniture rather than catalogue data, so it is named by
+      // configuration instead of borrowing a division's hero image -
+      // which previously meant the same photograph appeared twice.
+      counterKey: process.env.SHOWCASE_IMAGE_KEY || '',
     },
+    // Hero slides: one per division that has a photograph, so the
+    // carousel grows by uploading a hero image in the admin rather
+    // than by editing a template.
+    slides: heroSlides(d),
+    // Lead-in cards for the biggest categories that have a photo.
+    solutions: d.categories
+      .filter((c) => !c.parent_id && c.image_key)
+      .sort(bySort)
+      .map((c) => ({
+        key: c.image_key, name: c.name, href: url.category(c),
+        verb: ((n) => (n ? `${n} product${n === 1 ? '' : 's'}` : 'the range'))(
+          (d.productsByCategory.get(c.id) || new Set()).size),
+      })),
   }, ctx));
   if (home) { emit(url.home(), home); track(url.home(), '1.0'); }
 

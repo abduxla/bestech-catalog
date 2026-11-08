@@ -100,7 +100,11 @@ async function main() {
     if (dest.product) key = `products/${slugify(dest.product)}/${(dest.position ?? 0) + 1}`;
     else if (dest.category) key = `categories/${slugify(dest.category)}`;
     else if (dest.division) key = `divisions/${slugify(dest.division)}`;
-    else { problems.push(`${name}: manifest entry names no product, category or division`); continue; }
+    // A bare storage key, for site furniture that belongs to no row -
+    // editorial photography referenced by configuration rather than
+    // by a foreign key.
+    else if (dest.key) key = String(dest.key).replace(/^\/+/, '');
+    else { problems.push(`${name}: manifest entry names no product, category, division or key`); continue; }
 
     let sizesDone = 0;
     for (const size of SIZES) {
@@ -135,6 +139,8 @@ async function main() {
         if (!c) { problems.push(`${name}: no category "${dest.category}"`); continue; }
         await rest(`categories?id=eq.${c.id}`,
           { method: 'PATCH', body: JSON.stringify({ image_key: key }), headers: { Prefer: 'return=minimal' } });
+      } else if (dest.key) {
+        // Nothing to record: the key IS the reference.
       } else {
         const d = byDivSlug.get(slugify(dest.division));
         if (!d) { problems.push(`${name}: no division "${dest.division}"`); continue; }
