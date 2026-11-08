@@ -183,6 +183,8 @@ p { margin: 0 0 1em; }
 /* The reference puts an account button here; this catalogue has no
    accounts and no cart, so the counter telephone number takes the
    slot - it is the only thing a buyer can actually act on. */
+.header__cta { flex: none; white-space: nowrap; }
+
 .header__call {
   display: flex; flex-direction: column; gap: 1px; flex: none; text-align: right;
 }
@@ -569,7 +571,8 @@ p { margin: 0 0 1em; }
   .brand__mark { width: 34px; }
   .brand__tag { font-size: 8.5px; letter-spacing: .22em; }
 
-  .header__call { order: 2; margin-left: auto; }
+  .header__call, .header__cta { order: 2; margin-left: auto; }
+  .header__cta { padding: 11px 18px; font-size: 13px; }
   .header__call strong { font-size: 15px; }
   .header__call span { font-size: 10px; letter-spacing: .07em; }
 
