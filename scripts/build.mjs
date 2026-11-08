@@ -31,7 +31,7 @@
 
 import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname, join as pathJoin, posix } from 'node:path';
+import { dirname, join as pathJoin, posix, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { queryAll, assertConfigured } from '../lib/db.mjs';
@@ -42,7 +42,13 @@ import {
 import { imageUrl } from '../lib/images.mjs';
 
 const ROOT = pathJoin(dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = pathJoin(ROOT, 'dist');
+// DIST_DIR exists so the test suite can build into a throwaway
+// directory. Tests used to render into the real dist/, which meant a
+// test run silently replaced a live build with fixture data - and in
+// CI, a test step between build and deploy would have shipped it.
+const DIST = process.env.DIST_DIR
+  ? (isAbsolute(process.env.DIST_DIR) ? process.env.DIST_DIR : pathJoin(ROOT, process.env.DIST_DIR))
+  : pathJoin(ROOT, 'dist');
 const CACHE = pathJoin(ROOT, '.cache', 'snapshot.json');
 const STATIC = pathJoin(ROOT, 'static');
 

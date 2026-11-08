@@ -11,16 +11,19 @@
 // not data, and dead links from renamed pages.
 // =====================================================================
 
-import { test, before } from 'node:test';
+import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = join(ROOT, 'dist');
-const env = { ...process.env, IMAGE_BASE_URL: 'https://images.example.test', SITE_ORIGIN: 'https://www.bestech.lk' };
+// Never the real dist/: a test run must not be able to destroy a
+// build that is about to be deployed.
+const DIST = join(tmpdir(), `bestech-build-test-${process.pid}`);
+const env = { ...process.env, IMAGE_BASE_URL: 'https://images.example.test', SITE_ORIGIN: 'https://www.bestech.lk', DIST_DIR: DIST, PREVIEW_BUILD: '' };
 
 const run = (script, args = []) =>
   execFileSync(process.execPath, [join(ROOT, 'scripts', script), ...args], { cwd: ROOT, env, encoding: 'utf8' });
@@ -38,6 +41,9 @@ before(() => {
   run('dev-fixture.mjs');
   firstBuild = run('build.mjs', ['--from-cache']);
 });
+
+// Leave no temp directories behind.
+after(() => { rmSync(DIST, { recursive: true, force: true }); });
 
 test('the build renders every kind of page', () => {
   for (const page of [
