@@ -88,15 +88,23 @@ p { margin: 0 0 1em; }
   padding: 0 var(--gutter); min-height: 64px;
 }
 
-.brand {
-  display: flex; align-items: center; gap: 9px;
-  font-family: var(--cond); font-size: 25px; font-weight: 700;
-  letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; flex: none;
+/* The logo lock-up, matching the company's own artwork: swoosh mark,
+   BE in red and STECH in white, with a letterspaced tagline beneath. */
+.brand { display: flex; align-items: center; gap: 10px; flex: none; }
+.brand:hover { color: inherit; }
+.brand__mark { width: 30px; height: 34px; flex: none; }
+.brand__text { display: flex; flex-direction: column; gap: 1px; }
+.brand__word {
+  font-family: var(--cond); font-size: 27px; font-weight: 700; line-height: 1;
+  letter-spacing: .005em; text-transform: uppercase; white-space: nowrap;
 }
-.brand__mark { width: 40px; height: auto; flex: none; }
-.brand:hover { color: var(--white); }
-.brand__be   { background: var(--red); color: var(--white); padding: 2px 7px; }
-.brand__rest { color: var(--white); padding-left: 5px; }
+.brand__be   { color: var(--red); }
+.brand__rest { color: var(--white); }
+.brand__tag {
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600; line-height: 1;
+  letter-spacing: .26em; text-transform: uppercase; color: #9aa1aa; white-space: nowrap;
+}
+.brand:hover .brand__rest { color: var(--white); }
 
 /* Nav. Hover-driven on the desktop, and because the markup is plain
    nested anchors every link is still crawlable and still works with
@@ -470,7 +478,9 @@ p { margin: 0 0 1em; }
 
 @media (max-width: 900px) {
   .header__inner { flex-wrap: wrap; gap: 12px; min-height: 0; padding: 12px var(--gutter); }
-  .brand { font-size: 21px; }
+  .brand__word { font-size: 22px; }
+  .brand__mark { width: 25px; height: 28px; }
+  .brand__tag { font-size: 8.5px; letter-spacing: .22em; }
   .search { order: 3; flex: 1 1 100%; }
   .search input { width: auto; flex: 1 1 auto; }
 
