@@ -133,9 +133,19 @@ function copyStatic() {
     // A hashed asset is written under its hashed name, which is what
     // the HTML references. Its unhashed name is never emitted, so the
     // prune step clears the previous build's copy by itself.
-    const rel = HASHED[relRaw] ? assets[HASHED[relRaw]].slice(1) : relRaw;
+    // A hashed asset is emitted under BOTH names.
+    //
+    // The hashed name is what new HTML references and can be cached
+    // forever. The plain name has to stay, because the host serves
+    // HTML with max-age=600 - so for ten minutes after every deploy
+    // there are browsers holding the PREVIOUS page, which asks for the
+    // plain name. Renaming and deleting in one step strands all of
+    // them on a completely unstyled page, which is exactly what the
+    // previous deploy did.
+    const names = HASHED[relRaw] ? [assets[HASHED[relRaw]].slice(1), relRaw] : [relRaw];
+    for (const rel of names) emitted.add(rel);
+    const rel = names[0];
     const dest = pathJoin(DIST, rel);
-    emitted.add(rel);
     const body = readFileSync(src);
     const next = createHash('sha1').update(body).digest('hex');
     if (existsSync(dest)) {
@@ -145,6 +155,11 @@ function copyStatic() {
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, body);
     written++;
+    for (const alias of names.slice(1)) {
+      const aliasPath = pathJoin(DIST, alias);
+      mkdirSync(dirname(aliasPath), { recursive: true });
+      writeFileSync(aliasPath, body);
+    }
   }
 }
 

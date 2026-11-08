@@ -223,3 +223,21 @@ test('changing the stylesheet changes its URL, and the old file is pruned', () =
     run('build.mjs', ['--from-cache']);
   }
 });
+
+test('a hashed asset is also kept under its plain name', () => {
+  // The host serves HTML with max-age=600, so for ten minutes after a
+  // deploy some browsers are holding the PREVIOUS page, which asks for
+  // the plain filename. Renaming and deleting in one step strands all
+  // of them on a completely unstyled page. It shipped once; it must
+  // not ship again.
+  assert.ok(has('assets/css/site.css'), 'the compatibility stylesheet was dropped');
+  assert.ok(has('assets/js/site.js'), 'the compatibility script was dropped');
+
+  const hashed = read('index.html').match(/assets\/css\/(site\.[a-f0-9]+\.css)/)[1];
+  assert.notEqual(hashed, 'site.css', 'the page should reference the hashed name');
+  assert.equal(
+    readFileSync(join(DIST, 'assets/css', hashed), 'utf8'),
+    readFileSync(join(DIST, 'assets/css/site.css'), 'utf8'),
+    'the two copies have drifted apart',
+  );
+});
