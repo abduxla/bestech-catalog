@@ -14,7 +14,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -160,8 +160,8 @@ test('with BASE_PATH set, links are prefixed but files stay at the root', () => 
   });
 
   const home = read('index.html');
-  assert.match(home, /href="\/bestech-catalog\/assets\/css\/site\.css"/);
-  assert.match(home, /src="\/bestech-catalog\/assets\/js\/site\.js"/);
+  assert.match(home, /href="\/bestech-catalog\/assets\/css\/site\.[a-f0-9]+\.css"/);
+  assert.match(home, /src="\/bestech-catalog\/assets\/js\/site\.[a-f0-9]+\.js"/);
   assert.match(home, /href="\/bestech-catalog\/brands\/"/);
 
   // The files themselves must NOT be nested under the prefix — the host
@@ -187,4 +187,39 @@ test('a preview build is impossible to mistake for the real site', () => {
   assert.match(read('index.html'), /noindex, nofollow/);
   assert.match(read('index.html'), /PREVIEW/);
   assert.match(read('product/hugo-13mm-impact-drill-hg-id13/index.html'), /noindex, nofollow/);
+});
+
+// ---------------------------------------------------------------------
+// Asset cache-busting.
+//
+// A deploy that changes the stylesheet but keeps its filename serves
+// new HTML to browsers holding the old CSS, and the page arrives
+// structurally broken with no error anywhere. That shipped once: the
+// header markup gained new class names, cached CSS had no rules for
+// them, and the whole header collapsed into a vertical stack.
+// ---------------------------------------------------------------------
+test('every asset the HTML references actually exists', () => {
+  const refs = [...read('index.html').matchAll(/(?:href|src)="([^"]*\/assets\/[^"]+)"/g)]
+    .map((m) => m[1].replace(/^\//, ''));
+  assert.ok(refs.length >= 2, 'expected the page to reference a stylesheet and a script');
+  for (const ref of refs) assert.ok(has(ref), `HTML references ${ref}, which was not emitted`);
+});
+
+test('changing the stylesheet changes its URL, and the old file is pruned', () => {
+  const cssPath = join(ROOT, 'static', 'assets', 'css', 'site.css');
+  const original = readFileSync(cssPath, 'utf8');
+
+  const before = read('index.html').match(/assets\/css\/(site\.[^"]+\.css)/)[1];
+  try {
+    writeFileSync(cssPath, original + '\n/* cache-busting probe */\n', 'utf8');
+    run('build.mjs', ['--from-cache']);
+    const after = read('index.html').match(/assets\/css\/(site\.[^"]+\.css)/)[1];
+
+    assert.notEqual(after, before, 'the stylesheet URL did not change when its content did');
+    assert.ok(has(`assets/css/${after}`), 'the new stylesheet was not written');
+    assert.ok(!has(`assets/css/${before}`), 'the superseded stylesheet was left behind');
+  } finally {
+    writeFileSync(cssPath, original, 'utf8');
+    run('build.mjs', ['--from-cache']);
+  }
 });

@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 import { queryAll, assertConfigured } from '../lib/db.mjs';
 import {
   layout, productPage, listingPage, homePage, brandsIndexPage, redirectStub,
-  url, SITE, BASE,
+  url, SITE, BASE, assets,
 } from '../lib/render.mjs';
 import { imageUrl } from '../lib/images.mjs';
 
@@ -110,12 +110,30 @@ function listExisting(dir, base = '') {
   return out;
 }
 
+// The stylesheet and the script are content-hashed, so a cached copy
+// can never be paired with newer HTML. Everything else keeps its name.
+const HASHED = { 'assets/css/site.css': 'css', 'assets/js/site.js': 'js' };
+
+function hashAssets() {
+  for (const [rel, key] of Object.entries(HASHED)) {
+    const src = pathJoin(STATIC, rel);
+    if (!existsSync(src)) continue;
+    const h = createHash('sha1').update(readFileSync(src)).digest('hex').slice(0, 10);
+    const dot = rel.lastIndexOf('.');
+    assets[key] = '/' + rel.slice(0, dot) + '.' + h + rel.slice(dot);
+  }
+}
+
 function copyStatic() {
   // CSS, JS and anything else hand-written. Copied rather than imported
   // so the assets stay editable by anyone without touching the build.
   if (!existsSync(STATIC)) return;
-  for (const rel of listExisting(STATIC)) {
-    const src = pathJoin(STATIC, rel);
+  for (const relRaw of listExisting(STATIC)) {
+    const src = pathJoin(STATIC, relRaw);
+    // A hashed asset is written under its hashed name, which is what
+    // the HTML references. Its unhashed name is never emitted, so the
+    // prune step clears the previous build's copy by itself.
+    const rel = HASHED[relRaw] ? assets[HASHED[relRaw]].slice(1) : relRaw;
     const dest = pathJoin(DIST, rel);
     emitted.add(rel);
     const body = readFileSync(src);
@@ -294,6 +312,7 @@ const bySort = (a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name);
 // ---------------------------------------------------------------------
 async function main() {
   console.log(`\n  Building ${SITE.name} -> dist/\n`);
+  hashAssets();   // must run before the first page is rendered
   const snap = await load();
   const d = shape(snap);
   const ctx = { nav: d.nav, origin: ORIGIN };
