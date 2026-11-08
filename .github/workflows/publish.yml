@@ -41,17 +41,20 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  # contents: write because Pages is configured as "Deploy from a
+  # branch", so publishing means committing dist/ to gh-pages rather
+  # than uploading a Pages artifact.
+  contents: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     env:
+      # A project site is served from /<repo>/; a custom domain from the
+      # root. Setting the SITE_ORIGIN repository variable (to
+      # https://www.bestech.lk, say) switches to the root automatically.
+      SITE_ORIGIN: ${{ vars.SITE_ORIGIN || format('https://{0}.github.io', github.repository_owner) }}
+      BASE_PATH: ${{ vars.SITE_ORIGIN && '' || format('/{0}', github.event.repository.name) }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -68,13 +71,6 @@ jobs:
       # Fast, and gates everything below it. node:test is built in.
       - name: Test
         run: npm test
-
-      # Gives us base_path (/bestech-catalog on a project site, / on a
-      # custom domain) and the public origin. Both are read below rather
-      # than hardcoded, so moving to bestech.lk needs no edit here.
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5
 
       # ---------------------------------------------------------------
       # Real catalogue, or preview?
@@ -132,8 +128,6 @@ jobs:
       - name: Build
         if: steps.queue.outputs.skip != 'yes'
         env:
-          BASE_PATH: ${{ steps.pages.outputs.base_path }}
-          SITE_ORIGIN: ${{ steps.pages.outputs.origin }}
           PREVIEW_BUILD: ${{ steps.mode.outputs.mode == 'preview' && '1' || '' }}
         run: |
           if [ "${{ steps.mode.outputs.mode }}" = "preview" ]; then
@@ -163,15 +157,23 @@ jobs:
       # ---------------------------------------------------------------
       # Deploy.
       # ---------------------------------------------------------------
-      - uses: actions/upload-pages-artifact@v3
-        if: steps.queue.outputs.skip != 'yes'
-        with:
-          path: dist
-
-      - name: Deploy to GitHub Pages
+      # Commit the built site to gh-pages. Force-pushed with no history:
+      # dist/ is generated output, so a growing history of it would just
+      # bloat every clone for no benefit. The source of truth is main.
+      - name: Deploy to gh-pages
         id: deploy
         if: steps.queue.outputs.skip != 'yes'
-        uses: actions/deploy-pages@v4
+        run: |
+          cd dist
+          git init -q
+          git checkout -q -b gh-pages
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -q -m "Build ${GITHUB_SHA::7} (${{ steps.mode.outputs.mode }})"
+          git push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
+          echo "Published to https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
 
       # Close the request either way, so the admin never shows "queued"
       # forever after a failure — and says why.

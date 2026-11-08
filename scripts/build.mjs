@@ -456,7 +456,7 @@ async function main() {
   // the client's name.
   emit('/robots.txt', process.env.PREVIEW_BUILD === '1'
     ? 'User-agent: *\nDisallow: /\n'
-    : `User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: ${ORIGIN}/sitemap.xml\n`);
+    : `User-agent: *\nAllow: /\nDisallow: ${BASE}/admin/\nSitemap: ${ORIGIN}${BASE}/sitemap.xml\n`);
 
   // ---- admin configuration ----
   // Written from the environment so the same committed admin page works
