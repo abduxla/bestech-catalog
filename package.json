@@ -12,6 +12,7 @@
     "build:cache": "node scripts/build.mjs --from-cache",
     "build:drafts": "node scripts/build.mjs --drafts",
     "doctor": "node scripts/doctor.mjs",
+    "bundle": "node scripts/bundle-migrations.mjs",
     "fixture": "node scripts/dev-fixture.mjs",
     "dev": "node scripts/dev-fixture.mjs && node scripts/build.mjs --from-cache && node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
