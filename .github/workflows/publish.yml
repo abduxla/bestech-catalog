@@ -160,9 +160,21 @@ jobs:
       # Commit the built site to gh-pages. Force-pushed with no history:
       # dist/ is generated output, so a growing history of it would just
       # bloat every clone for no benefit. The source of truth is main.
+      # A PREVIEW IS NEVER PUBLISHED BY DEFAULT.
+      #
+      # Preview builds exist so CI still catches breakage before the
+      # database is wired up — not so fixture products can replace a
+      # real catalogue. Overwriting a live site with invented data is
+      # strictly worse than not deploying at all, and it would happen
+      # on any push made before the secrets were set.
+      #
+      # Set the ALLOW_PREVIEW_DEPLOY repository variable to "true" to
+      # publish previews deliberately, e.g. on a staging repo.
       - name: Deploy to gh-pages
         id: deploy
-        if: steps.queue.outputs.skip != 'yes'
+        if: >-
+          steps.queue.outputs.skip != 'yes' &&
+          (steps.mode.outputs.mode == 'live' || vars.ALLOW_PREVIEW_DEPLOY == 'true')
         run: |
           cd dist
           git init -q
@@ -174,6 +186,12 @@ jobs:
           git push -q --force \
             "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
           echo "Published to https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+
+      - name: Explain why nothing was published
+        if: steps.mode.outputs.mode == 'preview' && vars.ALLOW_PREVIEW_DEPLOY != 'true'
+        run: |
+          echo "::notice::Built and tested a PREVIEW, but did not publish it."
+          echo "::notice::Set the SUPABASE_URL secret to publish the real catalogue."
 
       # Close the request either way, so the admin never shows "queued"
       # forever after a failure — and says why.
