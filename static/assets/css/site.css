@@ -247,6 +247,7 @@ p { margin: 0 0 1em; }
   position: relative; isolation: isolate;
   background: var(--ink) linear-gradient(135deg, #15181c 0%, #22262c 100%);
   color: var(--white); overflow: hidden;
+  display: grid;
 }
 
 /* With a photograph behind it, the type still has to be readable at a
@@ -748,7 +749,12 @@ p { margin: 0 0 1em; }
    visible before any script runs, so a visitor without JavaScript
    gets a hero rather than an empty band. */
 .heroslide {
-  position: absolute; inset: 0; opacity: 0; visibility: hidden;
+  grid-area: 1 / 1;
+  /* The slide stretches to the tallest sibling; this makes its inner
+     panel stretch too, so a short slide puts the extra space ABOVE
+     the copy rather than leaving a gap under the bottom rule. */
+  display: grid;
+  opacity: 0; visibility: hidden;
   transition: opacity .7s ease, visibility .7s;
   background: var(--ink) var(--hero-image) center 42%/cover no-repeat;
 }
@@ -760,12 +766,17 @@ p { margin: 0 0 1em; }
 }
 .heroslide.is-active { opacity: 1; visibility: visible; }
 
-/* The first slide stays in normal flow and sets the section height;
-   the others are layered over it. */
-.heroslide:first-child { position: relative; }
+/* Every slide is in flow and occupies the same cell, so the section
+   is as tall as the tallest of them. Nothing can overflow, whatever
+   the copy length, and the controls always sit clear of the text. */
 
 .heroslide__inner {
   position: relative; z-index: 1;
+  /* As a grid item, .wrap's `margin: 0 auto` cancels the default
+     stretch and the panel shrink-wraps to its text. An explicit width
+     restores full-bleed; max-width still caps it and the auto margins
+     still centre it. */
+  width: 100%;
   min-height: 600px; display: flex; flex-direction: column;
   padding: 34px var(--gutter) 104px;
 }

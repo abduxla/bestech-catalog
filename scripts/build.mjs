@@ -354,8 +354,12 @@ function heroSlides(d) {
   const rest = (process.env.HERO_IMAGE_KEY ? withPhoto : withPhoto.slice(1)).map((div) => ({
     key: div.hero_key,
     eyebrow: div.name,
-    title: div.tagline || div.name,
-    sub: div.blurb || '',
+    // The NAME is the headline, not the tagline. A full sentence set
+    // in a 90px display face makes one slide twice the height of the
+    // others, and a stacked carousel is only as short as its tallest
+    // slide.
+    title: div.name,
+    sub: div.tagline || div.blurb || '',
     cta: `See ${div.name}`,
     href: url.division(div),
   }));
