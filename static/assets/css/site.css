@@ -48,6 +48,12 @@
 
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
+/* Nothing should push the page sideways on a phone. `clip` rather
+   than `hidden`, because `hidden` on the root silently breaks every
+   position:sticky element on the page - including this site's header
+   and section jump bar. */
+body { overflow-x: clip; }
+
 body {
   margin: 0;
   background: var(--white);
@@ -548,30 +554,64 @@ p { margin: 0 0 1em; }
 }
 
 @media (max-width: 900px) {
-  .header__inner { flex-wrap: wrap; gap: 12px; min-height: 0; padding: 12px var(--gutter); }
-  .brand__word { font-size: 22px; }
+  /* This block used to target .header__inner, which was renamed to
+     .header__top when the header became two rows - so none of it
+     applied and the phone layout silently reverted to the desktop
+     one, overflowing the viewport. */
+  .header__top {
+    flex-wrap: wrap; gap: 10px 14px; min-height: 0;
+    padding: 12px var(--gutter);
+  }
+  .brand { order: 1; }
+  .brand__word { font-size: 21px; }
   .brand__mark { width: 25px; height: 28px; }
   .brand__tag { font-size: 8.5px; letter-spacing: .22em; }
-  .search { order: 3; flex: 1 1 100%; }
-  .search input { width: auto; flex: 1 1 auto; }
 
-  /* The mega panel cannot hover on a touch screen, so the nav becomes a
-     plain scrolling row of division links. The footer carries the full
-     tree, which is the real navigation on a phone. */
-  .nav { order: 4; flex: 1 1 100%; overflow-x: auto; }
-  .nav__list { gap: 0; }
-  .nav__link { padding: 10px 14px; white-space: nowrap; }
+  .header__call { order: 2; margin-left: auto; }
+  .header__call strong { font-size: 15px; }
+  .header__call span { font-size: 10px; letter-spacing: .07em; }
+
+  .search { order: 3; flex: 1 1 100%; max-width: none; margin-inline: 0; }
+  .search input { padding: 10px 13px; }
+  .search button { padding: 10px 16px; }
+
+  /* A mega panel cannot be hovered on a touch screen, so the nav
+     becomes a single scrolling row. The footer carries the whole
+     tree, and that is the real navigation on a phone. */
+  .header__navrow .nav { overflow-x: auto; scrollbar-width: none; }
+  .header__navrow .nav::-webkit-scrollbar { display: none; }
+  .nav__list { gap: 0; flex-wrap: nowrap; }
+  .nav__link { padding: 12px 14px; white-space: nowrap; font-size: 13px; }
   .mega { display: none; }
 }
 
 @media (max-width: 600px) {
   :root { --gutter: 16px; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-  .hero__inner { padding: 40px var(--gutter) 44px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; }
   .divisions { padding: 36px var(--gutter); gap: 36px; }
   .topbar__inner span:first-child { display: none; }
   .spec th { width: 46%; }
   .spec__unit { font-size: 12px; }
+
+  /* The display face is very wide, so a long word has to be allowed
+     to break rather than push the page sideways. */
+  .hero__title, p.hero__title, h1, h2 { overflow-wrap: break-word; }
+  .hero__title, p.hero__title { font-size: clamp(27px, 8.4vw, 40px); }
+  .hero__sub { font-size: 15.5px; }
+  /* Room for the carousel controls, which are absolutely positioned
+     at the bottom. A full-width button here used to sit right on top
+     of them. */
+  .heroslide__inner { min-height: 440px; padding: 22px var(--gutter) 116px; }
+  .heroslide__copy .btn { width: 100%; text-align: center; }
+  .heronav { gap: 7px; bottom: 22px; }
+  .heronav__arrow, .heronav__pause { width: 34px; height: 34px; }
+
+  .subnav__link { padding: 14px 12px; font-size: 13px; }
+  .band__head--row { display: block; }
+  .band__head--row .band__lede { padding-top: 8px; }
+  .enquiry__card .btn { width: 100%; text-align: center; }
+  .pillar, .supportcard { padding: 24px 22px; }
+  .showcase { padding: 48px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -789,7 +829,9 @@ p.hero__title {
 @keyframes heroProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 @media (max-width: 700px) {
-  .heroslide__inner { min-height: 470px; padding-bottom: 92px; }
+  /* Clearance for the absolutely-positioned carousel controls: a
+     full-width button here otherwise lands right on top of them. */
+  .heroslide__inner { min-height: 450px; padding-bottom: 118px; }
   .heronav__dot.is-active .heronav__bar { width: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
