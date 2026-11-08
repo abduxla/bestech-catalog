@@ -1,21 +1,26 @@
 # =====================================================================
 # Build and publish the catalogue.
 #
-# Four triggers, one job:
-#
-#   push to main    — a template or code change goes live
-#   schedule        — picks up "Publish" requests made in the admin, and
-#                     rebuilds nightly regardless so the site can never
-#                     drift far from the database
+# Triggers:
+#   push to main      — a template or code change goes live
+#   schedule          — picks up "Publish" requests made in the admin,
+#                       and rebuilds nightly regardless
 #   workflow_dispatch — a human forcing a build from the Actions tab
 #
-# The deploy credential lives in GitHub secrets and is never served to a
-# browser. That is the whole reason publishing goes through a database
-# queue instead of a deploy-hook URL embedded in the admin page.
+# IMPORTANT: this workflow works with OR without a database.
 #
-# No `npm install` anywhere: the project has zero dependencies, so CI
-# has nothing to resolve, nothing to cache and nothing that can break
-# because an upstream package published a bad version at 3am.
+# Until the Supabase secrets are set it builds a PREVIEW from the
+# committed fixture — clearly banner-marked and noindex — so the site
+# has a real, viewable address from day one. The moment SUPABASE_URL
+# exists as a secret it switches to the real catalogue automatically,
+# with no edit to this file. A deploy pipeline that cannot run until
+# every credential is in place is a deploy pipeline nobody trusts.
+#
+# The deploy credential lives in GitHub, never in a browser. That is
+# why publishing goes through a database queue rather than a deploy
+# hook embedded in the admin page.
+#
+# No `npm install` anywhere: the project has zero dependencies.
 # =====================================================================
 
 name: Publish catalogue
@@ -24,22 +29,14 @@ on:
   push:
     branches: [main]
   schedule:
-    # Every 15 minutes during Sri Lankan working hours (UTC+5:30), so a
-    # "Publish" in the admin goes live quickly without burning CI
-    # minutes around the clock; plus one nightly build at 20:00 UTC
-    # (01:30 Colombo) that runs whether or not anything was requested.
     - cron: '*/15 2,3,4,5,6,7,8,9,10,11,12 * * 1-6'
     - cron: '0 20 * * *'
   workflow_dispatch:
-    inputs:
-      force:
-        description: 'Build even if nothing was requested'
-        type: boolean
-        default: true
 
 concurrency:
-  # Never two builds at once: they would race to upload the same files.
-  # Queue rather than cancel, so a requested publish is never dropped.
+  # Never two builds at once — they would race to upload the same
+  # files. Queue rather than cancel, so a requested publish is never
+  # silently dropped.
   group: publish
   cancel-in-progress: false
 
@@ -59,7 +56,6 @@ jobs:
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       IMAGE_BASE_URL: ${{ secrets.IMAGE_BASE_URL }}
-      SITE_ORIGIN: ${{ vars.SITE_ORIGIN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -69,24 +65,41 @@ jobs:
           node-version: '20'
           # Deliberately no cache: there are no dependencies to cache.
 
-      # Fast, and gates everything below it. Uses node:test, which is
-      # built into Node — nothing to install.
+      # Fast, and gates everything below it. node:test is built in.
       - name: Test
         run: npm test
 
+      # Gives us base_path (/bestech-catalog on a project site, / on a
+      # custom domain) and the public origin. Both are read below rather
+      # than hardcoded, so moving to bestech.lk needs no edit here.
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
       # ---------------------------------------------------------------
-      # Is there anything to do?
-      #
+      # Real catalogue, or preview?
+      # ---------------------------------------------------------------
+      - name: Decide what to build
+        id: mode
+        run: |
+          if [ -n "$SUPABASE_URL" ]; then
+            echo "mode=live" >> "$GITHUB_OUTPUT"
+            echo "Database configured — building the real catalogue."
+          else
+            echo "mode=preview" >> "$GITHUB_OUTPUT"
+            echo "::notice::No SUPABASE_URL secret. Building a PREVIEW from fixture data."
+          fi
+
+      # ---------------------------------------------------------------
       # On a scheduled run, build only when an administrator actually
-      # pressed Publish — otherwise this would redeploy an unchanged
-      # site 50 times a day. Pushes, the nightly run and manual
-      # dispatches always build.
+      # pressed Publish — otherwise this redeploys an unchanged site
+      # fifty times a day. Pushes, nightly and manual runs always build.
       # ---------------------------------------------------------------
       - name: Check the publish queue
         id: queue
+        if: steps.mode.outputs.mode == 'live'
         run: |
           if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ github.event.schedule }}" = "0 20 * * *" ]; then
-            echo "build=yes" >> "$GITHUB_OUTPUT"
             echo "Building: triggered by ${{ github.event_name }}."
             exit 0
           fi
@@ -95,13 +108,10 @@ jobs:
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             "$SUPABASE_URL/rest/v1/publish_requests?select=id&completed_at=is.null&order=requested_at.asc&limit=1")
           if [ "$pending" = "[]" ] || [ -z "$pending" ]; then
-            echo "build=no" >> "$GITHUB_OUTPUT"
+            echo "skip=yes" >> "$GITHUB_OUTPUT"
             echo "Nothing requested. Skipping."
           else
-            id=$(echo "$pending" | sed -E 's/.*"id":([0-9]+).*/\1/')
-            echo "build=yes" >> "$GITHUB_OUTPUT"
-            echo "request_id=$id" >> "$GITHUB_OUTPUT"
-            echo "Building: publish request #$id is pending."
+            echo "request_id=$(echo "$pending" | sed -E 's/.*\"id\":([0-9]+).*/\1/')" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Mark the request as started
@@ -110,30 +120,41 @@ jobs:
           curl -fsS -X PATCH \
             -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
+            -H "Content-Type: application/json" -H "Prefer: return=minimal" \
             -d "{\"started_at\":\"$(date -u +%FT%TZ)\"}" \
             "$SUPABASE_URL/rest/v1/publish_requests?id=eq.${{ steps.queue.outputs.request_id }}"
 
       # ---------------------------------------------------------------
-      # Build. Fails loudly rather than deploying something broken — the
-      # build script refuses to publish a catalogue that lost half its
+      # Build. Fails loudly rather than deploying something broken: the
+      # build refuses to publish a catalogue that lost half its
       # products, and exits non-zero if the database is unreachable.
       # ---------------------------------------------------------------
       - name: Build
-        if: steps.queue.outputs.build == 'yes'
-        id: build
-        run: node scripts/build.mjs
+        if: steps.queue.outputs.skip != 'yes'
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          SITE_ORIGIN: ${{ steps.pages.outputs.origin }}
+          PREVIEW_BUILD: ${{ steps.mode.outputs.mode == 'preview' && '1' || '' }}
+        run: |
+          if [ "${{ steps.mode.outputs.mode }}" = "preview" ]; then
+            node scripts/dev-fixture.mjs
+            node scripts/build.mjs --from-cache
+          else
+            node scripts/build.mjs
+          fi
+          # Stop GitHub Pages running Jekyll over the output, which
+          # would silently drop any file or folder beginning with "_".
+          touch dist/.nojekyll
 
-      # A nightly snapshot of the whole catalogue, in the same JSONL the
-      # importer reads. Kept for 90 days, so any bad bulk edit is one
-      # download and one `--apply` away from being undone.
+      # A nightly snapshot of the whole catalogue in the importer's own
+      # format, so any bad bulk edit is one download and one --apply
+      # away from being undone.
       - name: Nightly backup
-        if: github.event.schedule == '0 20 * * *'
+        if: github.event.schedule == '0 20 * * *' && steps.mode.outputs.mode == 'live'
         run: node scripts/backup.mjs --out backups/nightly.jsonl
 
       - uses: actions/upload-artifact@v4
-        if: github.event.schedule == '0 20 * * *'
+        if: github.event.schedule == '0 20 * * *' && steps.mode.outputs.mode == 'live'
         with:
           name: catalogue-backup-${{ github.run_id }}
           path: backups/nightly.jsonl
@@ -141,44 +162,27 @@ jobs:
 
       # ---------------------------------------------------------------
       # Deploy.
-      #
-      # GitHub Pages by default: free, CDN-backed, and one less account
-      # to keep alive for five years. To use Vercel or Cloudflare Pages
-      # instead, set the DEPLOY_HOOK_URL secret — the step below fires
-      # it and the Pages steps become a harmless no-op you can delete.
       # ---------------------------------------------------------------
-      - name: Trigger external host
-        if: steps.queue.outputs.build == 'yes' && env.DEPLOY_HOOK != ''
-        env:
-          DEPLOY_HOOK: ${{ secrets.DEPLOY_HOOK_URL }}
-        run: curl -fsS -X POST "$DEPLOY_HOOK"
-
-      - uses: actions/configure-pages@v5
-        if: steps.queue.outputs.build == 'yes'
-
       - uses: actions/upload-pages-artifact@v3
-        if: steps.queue.outputs.build == 'yes'
+        if: steps.queue.outputs.skip != 'yes'
         with:
           path: dist
 
       - name: Deploy to GitHub Pages
         id: deploy
-        if: steps.queue.outputs.build == 'yes'
+        if: steps.queue.outputs.skip != 'yes'
         uses: actions/deploy-pages@v4
 
-      # ---------------------------------------------------------------
       # Close the request either way, so the admin never shows "queued"
       # forever after a failure — and says why.
-      # ---------------------------------------------------------------
       - name: Close the request
         if: always() && steps.queue.outputs.request_id
         run: |
           ok=$([ "${{ job.status }}" = "success" ] && echo true || echo false)
-          detail=$([ "$ok" = "true" ] && echo "" || echo "build failed — see GitHub Actions run ${{ github.run_id }}")
+          detail=$([ "$ok" = "true" ] && echo "" || echo "build failed - see GitHub Actions run ${{ github.run_id }}")
           curl -fsS -X PATCH \
             -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
+            -H "Content-Type: application/json" -H "Prefer: return=minimal" \
             -d "{\"completed_at\":\"$(date -u +%FT%TZ)\",\"ok\":$ok,\"detail\":\"$detail\"}" \
             "$SUPABASE_URL/rest/v1/publish_requests?id=eq.${{ steps.queue.outputs.request_id }}"

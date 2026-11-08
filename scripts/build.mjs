@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 import { queryAll, assertConfigured } from '../lib/db.mjs';
 import {
   layout, productPage, listingPage, homePage, brandsIndexPage, redirectStub,
-  url, SITE,
+  url, SITE, BASE,
 } from '../lib/render.mjs';
 import { imageUrl } from '../lib/images.mjs';
 
@@ -65,8 +65,12 @@ const emitted = new Set();
 // instead of to the catalogue.
 // ---------------------------------------------------------------------
 function emit(route, html) {
+  // Routes carry BASE (/bestech-catalog/c/drills/) because that is what
+  // a browser asks for; the FILE still belongs at dist/c/drills/, which
+  // the host serves from that prefix. Strip it here, in one place.
+  const path = BASE && route.startsWith(BASE) ? route.slice(BASE.length) || '/' : route;
   // "/c/drills/" -> "dist/c/drills/index.html"
-  const rel = route.endsWith('/') ? `${route}index.html` : route;
+  const rel = path.endsWith('/') ? `${path}index.html` : path;
   const file = pathJoin(DIST, rel.replace(/^\//, ''));
   emitted.add(posix.normalize(rel.replace(/^\//, '')));
 
@@ -305,7 +309,7 @@ async function main() {
     featured: featured.length ? featured : d.products.slice(0, 12),
     total: d.products.length,
   }, ctx));
-  if (home) { emit('/', home); track('/', '1.0'); }
+  if (home) { emit(url.home(), home); track(url.home(), '1.0'); }
 
   // ---- divisions ----
   for (const div of d.divisions) {
@@ -367,7 +371,7 @@ async function main() {
       heading: b.name,
       intro: b.blurb || `${b.name} products available from ${SITE.legal}.`,
       products: prods,
-      trail: [{ name: 'Brands', href: '/brands/' }, { name: b.name, href: url.brand(b) }],
+      trail: [{ name: 'Brands', href: `${BASE}/brands/` }, { name: b.name, href: url.brand(b) }],
       canonical: ORIGIN + url.brand(b),
     }, ctx));
     if (html) { emit(url.brand(b), html); track(url.brand(b), '0.6'); }
@@ -442,8 +446,11 @@ async function main() {
     '</urlset>',
   ].join('\n'));
 
-  emit('/robots.txt',
-    `User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: ${ORIGIN}/sitemap.xml\n`);
+  // A preview build must never be crawled: it is fixture data wearing
+  // the client's name.
+  emit('/robots.txt', process.env.PREVIEW_BUILD === '1'
+    ? 'User-agent: *\nDisallow: /\n'
+    : `User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: ${ORIGIN}/sitemap.xml\n`);
 
   // ---- admin configuration ----
   // Written from the environment so the same committed admin page works

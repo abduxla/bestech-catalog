@@ -139,3 +139,46 @@ test('a rebuild with no changes writes nothing', () => {
   assert.match(second, /written\s+0\b/, `expected no writes:\n${second}`);
   assert.match(firstBuild, /written\s+[1-9]/);
 });
+
+// ---------------------------------------------------------------------
+// Base path. GitHub Pages serves a project site from /bestech-catalog/
+// while a real domain serves it from the root. Getting this wrong
+// produces a site whose every stylesheet and link 404s — which is
+// exactly what happened on the first deploy attempt.
+// ---------------------------------------------------------------------
+test('with BASE_PATH set, links are prefixed but files stay at the root', () => {
+  rmSync(DIST, { recursive: true, force: true });
+  execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), '--from-cache'], {
+    cwd: ROOT, encoding: 'utf8',
+    env: { ...env, BASE_PATH: '/bestech-catalog', SITE_ORIGIN: 'https://abduxla.github.io' },
+  });
+
+  const home = read('index.html');
+  assert.match(home, /href="\/bestech-catalog\/assets\/css\/site\.css"/);
+  assert.match(home, /src="\/bestech-catalog\/assets\/js\/site\.js"/);
+  assert.match(home, /href="\/bestech-catalog\/brands\/"/);
+
+  // The files themselves must NOT be nested under the prefix — the host
+  // serves dist/ AT that prefix, so doing both would give
+  // /bestech-catalog/bestech-catalog/.
+  assert.ok(has('index.html'), 'index.html is not at the root of dist/');
+  assert.ok(!has('bestech-catalog/index.html'), 'output was double-nested under the base path');
+  assert.ok(has('product/hugo-13mm-impact-drill-hg-id13/index.html'));
+
+  assert.match(read('sitemap.xml'), /<loc>https:\/\/abduxla\.github\.io\/bestech-catalog\/<\/loc>/);
+
+  // Restore the default (no base path) build for any later run.
+  execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), '--from-cache'], { cwd: ROOT, env, encoding: 'utf8' });
+});
+
+test('a preview build is impossible to mistake for the real site', () => {
+  rmSync(DIST, { recursive: true, force: true });
+  execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), '--from-cache'], {
+    cwd: ROOT, encoding: 'utf8', env: { ...env, PREVIEW_BUILD: '1' },
+  });
+  assert.match(read('robots.txt'), /Disallow: \/\s*$/m, 'preview is crawlable');
+  assert.ok(!read('robots.txt').includes('Sitemap:'), 'preview advertises a sitemap');
+  assert.match(read('index.html'), /noindex, nofollow/);
+  assert.match(read('index.html'), /PREVIEW/);
+  assert.match(read('product/hugo-13mm-impact-drill-hg-id13/index.html'), /noindex, nofollow/);
+});

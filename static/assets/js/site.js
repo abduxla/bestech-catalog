@@ -110,7 +110,10 @@
 
   function ensureIndex() {
     if (index || pending) return pending;
-    pending = fetch('/search-index.json')
+    // Relative, not absolute: the search page is always one level
+    // below the site root, so this resolves correctly whether the
+    // site is served from a domain root or a /project/ sub-path.
+    pending = fetch('../search-index.json')
       .then(function (r) {
         if (!r.ok) throw new Error('index ' + r.status);
         return r.json();
