@@ -89,7 +89,6 @@ p { margin: 0 0 1em; }
 
 :focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
 
-
 /* ---------------------------------------------------------------------
    Header
    --------------------------------------------------------------------- */
@@ -188,16 +187,6 @@ p { margin: 0 0 1em; }
    slot - it is the only thing a buyer can actually act on. */
 .header__cta { flex: none; white-space: nowrap; }
 
-.header__call {
-  display: flex; flex-direction: column; gap: 1px; flex: none; text-align: right;
-}
-.header__call strong { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: .01em; }
-.header__call span { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: #9aa1aa; }
-.header__call:hover strong { color: var(--red); }
-
-.nav__toggle { display: none; }
-
-
 /* ---------------------------------------------------------------------
    Buttons
    --------------------------------------------------------------------- */
@@ -212,21 +201,6 @@ p { margin: 0 0 1em; }
 .btn:hover { background: var(--red); color: var(--white); }
 .btn--hero { background: var(--red); }
 .btn--hero:hover { background: var(--white); color: var(--ink); }
-
-/* The only call to action on the site: there is no cart, so the phone
-   number IS the conversion. It is styled as the primary action
-   everywhere it appears. */
-.btn--call {
-  display: flex; align-items: baseline; gap: 10px;
-  background: var(--red); font-size: 19px; letter-spacing: .02em;
-  padding: 13px 20px; margin-bottom: 8px;
-}
-.btn--call span {
-  font-family: var(--sans); font-size: 12px; font-weight: 400;
-  letter-spacing: .04em; text-transform: uppercase; opacity: .85;
-}
-.btn--call:hover { background: var(--ink); }
-
 
 /* ---------------------------------------------------------------------
    The rule
@@ -280,64 +254,48 @@ p { margin: 0 0 1em; }
   font-size: 18px; color: #d2d6db;
   max-width: 62ch; margin: 0 0 30px;
 }
-.hero__actions { display: flex; gap: 12px; justify-content: flex-start; flex-wrap: wrap; }
 
 .divisions { padding: 56px var(--gutter); display: grid; gap: 48px; }
-.division__head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; border-bottom: 3px solid var(--ink); padding-bottom: 11px; }
-.division__head h2 { margin: 0; }
-.division__head p { margin: 0; color: var(--steel); font-size: 15px; }
-.division__count { margin-left: auto; font-size: 13px; color: var(--steel); white-space: nowrap; }
 
 .division__tiles {
   display: grid; gap: 20px; margin: 0 0 28px;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  /* Without this, every tile stretches to match the tallest label in
-     the row, leaving a dead band of white under all the single-line
-     ones. */
-  align-items: start;
 }
-.tile { display: block; border: 1px solid var(--line); transition: border-color .13s, box-shadow .13s; }
+/* Name, photograph, call to action - the middle row takes whatever is
+   left, so the CTAs sit on one line across the row however long the
+   category names run. */
+.tile {
+  display: grid; grid-template-rows: auto 1fr auto; gap: 16px;
+  background: var(--white); border: 1px solid var(--line);
+  padding: 26px 20px 22px; text-align: center;
+  transition: border-color .13s, box-shadow .13s;
+}
 .tile:hover { border-color: var(--red); box-shadow: var(--shadow); }
+.tile__name {
+  display: block; font-family: var(--cond);
+  font-weight: 900; font-stretch: 125%; font-variation-settings: "wdth" 125;
+  font-size: 16.5px; line-height: 1.1; letter-spacing: -.005em;
+  text-transform: uppercase; color: var(--ink);
+}
 .tile__media {
   display: grid; place-items: center; aspect-ratio: 4 / 3;
-  background: var(--wash); overflow: hidden;
+  overflow: hidden; align-self: center; width: 100%;
 }
-.tile:hover .tile__media img { transform: scale(1.04); }
-.tile__media img { transition: transform .25s ease; }
+.tile:hover .tile__media img { transform: scale(1.05); }
 /* contain, never cover: a cropped drill chuck is useless to a buyer
    trying to identify a tool. Whitespace is the correct trade. */
-.tile__media img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
-.tile__name {
-  display: block; padding: 13px 13px; font-family: var(--cond);
-  font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
-  border-top: 1px solid var(--line);
+.tile__media img {
+  width: 100%; height: 100%; object-fit: contain;
+  mix-blend-mode: multiply; transition: transform .25s ease;
 }
-.division__all {
-  display: inline-block; font-family: var(--cond); font-size: 14px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .05em; color: var(--red);
-  border-bottom: 2px solid currentColor; padding-bottom: 2px;
+.tile__cta {
+  display: block; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--red);
 }
+.tile:hover .tile__cta { color: var(--ink); }
 
 .feature { padding: 0 var(--gutter) 56px; }
 .feature h2 { border-bottom: 3px solid var(--ink); padding-bottom: 11px; }
-
-.brandstrip { padding: 0 var(--gutter) 56px; }
-.brandstrip h2 { border-bottom: 3px solid var(--ink); padding-bottom: 11px; }
-.brandstrip__row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-.brandchip {
-  padding: 10px 18px; border: 1px solid var(--line); background: var(--white);
-  font-family: var(--cond); font-size: 14px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: .04em;
-}
-.brandchip:hover { border-color: var(--red); color: var(--red); }
-
-.callout { background: var(--ink); color: var(--white); }
-.callout__inner { padding: 14px var(--gutter) 18px; text-align: center; }
-.callout__inner h2 { margin-top: 44px; color: var(--white); }
-.callout__inner p { max-width: 580px; margin: 0 auto 26px; color: #c3c7cd; }
-.callout__phones { margin-bottom: 44px; }
-.callout__phones { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-
 
 /* ---------------------------------------------------------------------
    Breadcrumb
@@ -352,7 +310,6 @@ p { margin: 0 0 1em; }
 .crumb a { color: #9aa1aa; }
 .crumb a:hover { color: var(--red); }
 .crumb [aria-current] { color: var(--white); }
-
 
 /* ---------------------------------------------------------------------
    Listings
@@ -430,7 +387,6 @@ p { margin: 0 0 1em; }
 }
 .brandcard__count { display: block; font-size: 12.5px; color: var(--steel); margin-top: 3px; }
 
-
 /* ---------------------------------------------------------------------
    Product page
    --------------------------------------------------------------------- */
@@ -503,7 +459,6 @@ p { margin: 0 0 1em; }
 .related { margin-top: 64px; }
 .related h2 { border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
 
-
 /* ---------------------------------------------------------------------
    Search page
    --------------------------------------------------------------------- */
@@ -514,7 +469,6 @@ p { margin: 0 0 1em; }
 }
 .search--page input::placeholder { color: var(--steel); }
 .search--page button { padding: 13px 22px; }
-
 
 /* ---------------------------------------------------------------------
    Footer
@@ -535,7 +489,6 @@ p { margin: 0 0 1em; }
 .foot__contact .muted { color: #8a9099; font-size: 13px; }
 .foot__legal { border-top: 1px solid #2b2f35; padding: 18px var(--gutter); }
 .foot__legal p { margin: 0; font-size: 12.5px; color: #8a9099; }
-
 
 /* ---------------------------------------------------------------------
    Responsive
@@ -559,10 +512,8 @@ p { margin: 0 0 1em; }
   .brand__mark { width: 34px; }
   .brand__tag { font-size: 8.5px; letter-spacing: .22em; }
 
-  .header__call, .header__cta { order: 2; margin-left: auto; }
+  .header__cta { order: 2; margin-left: auto; }
   .header__cta { padding: 10px 14px; font-size: 12px; letter-spacing: .05em; }
-  .header__call strong { font-size: 15px; }
-  .header__call span { font-size: 10px; letter-spacing: .07em; }
 
   .search { order: 3; flex: 1 1 100%; max-width: none; margin-inline: 0; }
   .search input { padding: 10px 13px; }
@@ -613,7 +564,6 @@ p { margin: 0 0 1em; }
   .band__head--row .band__lede { padding-top: 8px; }
   .enquiry__card .btn { width: 100%; text-align: center; }
   .pillar, .supportcard { padding: 24px 22px; }
-  .showcase { padding: 48px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -705,27 +655,86 @@ p { margin: 0 0 1em; }
 .brandcard--rail { flex: 0 0 210px; display: grid; place-content: center; min-height: 118px; }
 .brandcard--rail .brandcard__count { display: none; }
 
-/* ---- showcase: copy panel overlapping a photograph ------------------ */
-.showcase {
-  position: relative; isolation: isolate;
-  background: var(--ink) var(--showcase-image) center/cover no-repeat;
-  padding: 86px 0;
+/* ---- editorial band: panel overlapping a photograph -----------------
+   A full-bleed photograph, a container-width white panel pulled up
+   over its lower edge, and a strip of the band's own colour showing
+   below. The reference uses two of these as breathers between card
+   sections, which is most of why its home page does not read as one
+   long scroll. */
+.editorial { background: var(--ink); padding-bottom: clamp(40px, 4vw, 64px); }
+/* The reference puts a deliberately chunky slab of colour under the
+   second of these, as the transition into the next section. */
+.editorial--accent { background: var(--red); padding-bottom: clamp(56px, 7vw, 104px); }
+.editorial__photo {
+  height: clamp(260px, 36vw, 500px);
+  background: var(--ink) var(--editorial-image) center/cover no-repeat;
 }
-.showcase::before {
-  content: ""; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(90deg, rgba(10,12,14,.72) 0%, rgba(10,12,14,.25) 70%);
+.editorial__panel {
+  position: relative;
+  /* Negative margin is what makes the overlap; it has to shrink with
+     the viewport or the panel swallows the whole photograph. */
+  margin-top: clamp(-104px, -7vw, -44px);
+  background: var(--white); border-top: 6px solid var(--red);
+  padding: 44px 48px;
+  display: grid; gap: 26px 60px; align-items: start;
+  /* The heading column gets the larger share: these headlines are set
+     in Expanded Black, which is very wide per character. */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
 }
-.showcase__panel {
-  background: var(--white); max-width: 560px; padding: 42px 44px;
-  border-top: 6px solid var(--red);
-}
-.showcase__eyebrow {
+.editorial__eyebrow {
   font-size: 12px; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--red); margin-bottom: 12px;
+  text-transform: uppercase; color: var(--red); margin: 0 0 12px;
 }
-.showcase__panel h2 { margin-bottom: 16px; }
-.showcase__panel p { color: var(--ink-soft); }
-@media (max-width: 700px) { .showcase__panel { padding: 28px 24px; } }
+.editorial__title {
+  margin: 0; font-size: clamp(28px, 3.5vw, 50px);
+  line-height: .98; letter-spacing: -.025em;
+}
+.editorial__body p { color: var(--ink-soft); font-size: 16.5px; margin: 0 0 24px; }
+@media (max-width: 860px) {
+  .editorial__panel {
+    grid-template-columns: 1fr; gap: 18px; padding: 30px 26px;
+  }
+}
+
+/* ---- promo panel between two accent rules --------------------------- */
+.promo { background: var(--white); }
+.promo__inner { padding: 60px var(--gutter); text-align: center; }
+.promo .rule--top { margin-bottom: 36px; }
+.promo .rule--bottom { margin-top: 36px; }
+.promo__eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--red); margin: 0 0 14px;
+}
+.promo__title {
+  margin: 0 0 14px; font-size: clamp(27px, 3.5vw, 48px);
+  line-height: 1.0; letter-spacing: -.025em;
+}
+.promo__sub {
+  color: var(--ink-soft); font-size: 16.5px;
+  max-width: 66ch; margin: 0 auto 28px;
+}
+.promo__actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .promo__inner { padding: 40px var(--gutter); }
+  .promo .rule--top { margin-bottom: 26px; }
+  .promo .rule--bottom { margin-top: 26px; }
+}
+
+/* ---- rail controls in the heading row -------------------------------
+   Where the reference puts them: a pair of squares at the top right of
+   the section heading, grey for back and accent for forward, rather
+   than arrows floating over the cards. */
+.railnav { display: flex; gap: 8px; margin-left: auto; }
+.railnav__btn {
+  width: 48px; height: 48px; flex: none; border: 0; cursor: pointer;
+  display: grid; place-items: center; font-size: 25px; line-height: 1;
+  background: var(--line); color: var(--ink);
+  transition: background .13s, color .13s, opacity .13s;
+}
+.railnav__btn--next { background: var(--red); color: var(--white); }
+.railnav__btn:hover:not(:disabled) { background: var(--ink); color: var(--white); }
+.railnav__btn:disabled { opacity: .3; cursor: default; }
+@media (max-width: 760px) { .railnav { display: none; } }
 
 /* ---- three pillars -------------------------------------------------- */
 .pillars {
@@ -739,6 +748,13 @@ p { margin: 0 0 1em; }
 @media (max-width: 600px) {
   .band { padding: 48px 0; }
   .rail__track > * { flex: 0 0 72vw; }
+  /* One category per row turns a division of ten into a very long
+     scroll for no gain: the photograph is recognisable at half this
+     width. */
+  .division__tiles { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .tile { padding: 18px 12px 16px; gap: 10px; }
+  .tile__name { font-size: 13.5px; }
+  .tile__cta { font-size: 10.5px; letter-spacing: .07em; }
 }
 
 /* =====================================================================
@@ -851,7 +867,6 @@ p.hero__title {
   .heroslide.is-active .heroslide__copy > * { animation: none; }
 }
 
-
 /* =====================================================================
    Category lead-in cards
    ===================================================================== */
@@ -890,7 +905,6 @@ p.hero__title {
 .solution:hover .solution__cta { color: var(--white); }
 .rail__track > .solution { flex: 0 0 300px; }
 
-
 /* =====================================================================
    Enquiry band — solid colour, in the reference's newsletter slot
    ===================================================================== */
@@ -914,7 +928,6 @@ p.hero__title {
   .enquiry__grid { grid-template-columns: 1fr; gap: 28px; padding: 48px var(--gutter); }
   .enquiry__card { padding: 26px 24px; }
 }
-
 
 /* =====================================================================
    Support cards
@@ -958,12 +971,6 @@ p.hero__title {
 }
 .modal__title { font-size: clamp(26px, 3.4vw, 38px); margin-bottom: 16px; }
 .modal__body p { color: var(--ink-soft); font-size: 15.5px; }
-.modal__ready { font-size: 14.5px; }
-.modal__ready strong { color: var(--ink); }
-.modal__actions { margin: 22px 0 14px; display: grid; gap: 9px; }
-.modal__actions .btn span {
-  font-weight: 400; font-size: 11.5px; letter-spacing: .08em; opacity: .85;
-}
 
 .modal__close {
   position: absolute; top: 14px; right: 16px;
@@ -1048,7 +1055,6 @@ p.hero__title {
 .eform--compact .eform__row { gap: 12px; margin-bottom: 12px; }
 .eform--compact .eform__field { margin-bottom: 12px; }
 .eform--compact .eform__foot { margin-top: 14px; }
-
 
 /* =====================================================================
    Contact band

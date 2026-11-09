@@ -170,12 +170,11 @@
   'use strict';
 
   // ---- rails ----
-  document.querySelectorAll('[data-rail]').forEach(function (rail) {
-    var track = rail.querySelector('[data-rail-track]');
-    var prev = rail.querySelector('[data-rail-prev]');
-    var next = rail.querySelector('[data-rail-next]');
-    if (!track || !prev || !next) return;
-
+  // Two kinds of control drive the same track: arrows floating over
+  // the rail, and a pair of buttons sitting at the top right of the
+  // section heading. `host`, when given, is the element to hide as a
+  // unit when there is nothing to scroll.
+  function wireRail(track, prev, next, host) {
     function step() {
       // Scroll by one card plus its gap, so a click never leaves a
       // card sliced in half at the edge.
@@ -185,8 +184,10 @@
 
     function sync() {
       var overflow = track.scrollWidth - track.clientWidth;
-      if (overflow < 8) { prev.hidden = true; next.hidden = true; return; }
-      prev.hidden = false; next.hidden = false;
+      var dead = overflow < 8;
+      if (host) host.hidden = dead;
+      else { prev.hidden = dead; next.hidden = dead; }
+      if (dead) return;
       prev.disabled = track.scrollLeft < 8;
       next.disabled = track.scrollLeft > overflow - 8;
     }
@@ -198,6 +199,20 @@
     sync();
     // Cards carry images that change the track width once decoded.
     if (window.ResizeObserver) new ResizeObserver(sync).observe(track);
+  }
+
+  document.querySelectorAll('[data-rail]').forEach(function (rail) {
+    var track = rail.querySelector('[data-rail-track]');
+    var prev = rail.querySelector('[data-rail-prev]');
+    var next = rail.querySelector('[data-rail-next]');
+    if (track && prev && next) wireRail(track, prev, next, null);
+  });
+
+  document.querySelectorAll('[data-railnav]').forEach(function (host) {
+    var track = document.getElementById(host.getAttribute('data-railnav'));
+    var prev = host.querySelector('[data-railnav-prev]');
+    var next = host.querySelector('[data-railnav-next]');
+    if (track && prev && next) wireRail(track, prev, next, host);
   });
 
   // ---- tabs ----
