@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /bestech-catalog/admin/
+Sitemap: https://abduxla.github.io/bestech-catalog/sitemap.xml

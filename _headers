@@ -1,0 +1,16 @@
+# Cloudflare Pages / Netlify equivalent of vercel.json's headers.
+#
+# Both files are committed deliberately. The site is a folder of static
+# HTML, so it can be moved between Vercel, Cloudflare Pages, Netlify, S3
+# or a plain nginx box in an afternoon — and if one of them changes its
+# pricing in 2029, that move must not need a rewrite. Keeping both host
+# configs in the repo is what makes that true rather than aspirational.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
